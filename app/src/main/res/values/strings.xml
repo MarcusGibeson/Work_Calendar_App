@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">Work_Calendar_App</string>
+    <string-array name="pay_type">
+        <item>Hourly</item>
+        <item>Commision</item>
+        <item>Tip</item>
+    </string-array>
+</resources>

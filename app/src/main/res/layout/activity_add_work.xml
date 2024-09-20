@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="10dp">
+    
+<!--Date-->
+    <TextView
+        android:text="Work Date"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        />
+    <EditText
+        android:id="@+id/workDate"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:focusable="false"
+        android:clickable="true"
+        android:hint="Select date"
+        />
+
+<!--Start Time-->
+    <TextView
+        android:text="Start Time"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        />
+    <EditText
+        android:id="@+id/startTime"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:focusable="false"
+        android:clickable="true"
+        android:hint="Select start time"
+        />
+
+<!--    End Time-->
+    <TextView
+        android:text="End Time"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        />
+    <EditText
+        android:id="@+id/endTime"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:focusable="false"
+        android:clickable="true"
+        android:hint="Select end time"
+        />
+
+<!--Break Time-->
+    <TextView
+        android:text="Break Time (Minutes)"
+        android:layout_height="wrap_content"
+        android:layout_width="wrap_content"
+        />
+    <EditText
+        android:id="@+id/breakTime"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:inputType="number"
+        android:hint="Break time (in minutes)"
+        />
+
+<!--    Pay Type-->
+    <TextView
+        android:text="Pay Type"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        />
+    <Spinner
+        android:id="@+id/payTypeSpinner"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:entries="@array/pay_type"
+        />
+
+<!--    Hourly Rate-->
+    <TextView
+        android:text="Hourly Rate/Commision"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        />
+    <EditText
+        android:id="@+id/payRate"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:inputType="numberDecimal"
+        />
+
+<!--    Overtime Rate-->
+    <TextView
+        android:text="Overtime Pay"
+        android:layout_height="wrap_content"
+        android:layout_width="wrap_content"
+        />
+    <EditText
+        android:id="@+id/overtimePay"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Overtime Pay"
+        android:inputType="numberDecimal"
+        />
+
+<!--    Save Button-->
+    <Button
+        android:id="@+id/btnSave"
+        android:text="Save"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        />
+
+</LinearLayout>

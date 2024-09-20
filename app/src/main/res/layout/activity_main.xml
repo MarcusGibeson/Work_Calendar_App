@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:orientation="vertical"
+    android:layout_height="match_parent"
+    android:padding="10dp">
+
+    <!--Calendar View-->
+    <CalendarView
+        android:id="@+id/calendarView"
+        android:layout_width="match_parent"
+        android:layout_height="307dp"
+        android:dateTextAppearance="?android:attr/textAppearanceLarge" />
+
+<!--    Button to select multiple dates-->
+    <Button
+        android:id="@+id/select_dates_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Select dates" />
+
+<!--    RecyclerView for displaying work details-->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/work_details_recycler_view"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:scrollbars="vertical" />
+
+    <!--Button to open Add Work Schedule Form-->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/addWorkFab"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="end"
+        android:layout_marginTop="160dp"
+        android:src="@drawable/ic_add"
+        android:contentDescription="Add work schedule" />
+
+</LinearLayout>
