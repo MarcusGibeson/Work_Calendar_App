@@ -10,6 +10,14 @@ import com.example.work_calendar_app.data.WorkDetails
 
 class WorkDetailsAdapter(private var workDetailsList: MutableList<WorkDetails>) : RecyclerView.Adapter<WorkDetailsAdapter.WorkDetailsViewHolder>() {
 
+    //Inner class to hold the views for each work details item
+    class WorkDetailsViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        val workDateTextView: TextView = itemView.findViewById<TextView>(R.id.work_date)
+        val startTimeTextView: TextView = itemView.findViewById<TextView>(R.id.start_time)
+        val endTimeTextView: TextView = itemView.findViewById<TextView>(R.id.end_time)
+        val wageTextView: TextView = itemView.findViewById<TextView>(R.id.wage_text)
+    }
+
     //Creates a new ViewHolder object for each item
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): WorkDetailsViewHolder {
         val view = LayoutInflater.from(parent.context)
@@ -20,18 +28,23 @@ class WorkDetailsAdapter(private var workDetailsList: MutableList<WorkDetails>) 
     //Binds the data to the views in each ViewHolder
     override fun onBindViewHolder(holder: WorkDetailsViewHolder, position: Int) {
         val workDetail = workDetailsList[position]
-        holder.bind(workDetail)
+
+        holder.workDateTextView.text = workDetail.workDate
+        holder.startTimeTextView.text = workDetail.startTime
+        holder.endTimeTextView.text = workDetail.endTime
+        holder.wageTextView.text = workDetail.wage.toString()
     }
 
-    override fun getItemCount(): Int = workDetailsList.size
+    override fun getItemCount(): Int {
+        return workDetailsList.size
+    }
 
-    //Inner class to hold the views for each work details item
-    class WorkDetailsViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        fun bind(workDetail: WorkDetails) {
-            itemView.findViewById<TextView>(R.id.work_date).text = workDetail.workDate
-            itemView.findViewById<TextView>(R.id.start_time).text = workDetail.startTime
-            itemView.findViewById<TextView>(R.id.end_time).text = workDetail.endTime
 
-        }
+
+    //Function to update the work details list and refresh the RecyclerView
+    fun updateData(newWorkDetails: List<WorkDetails>) {
+        workDetailsList.clear()
+        workDetailsList.addAll(newWorkDetails)
+        notifyDataSetChanged()
     }
 }

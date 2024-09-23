@@ -5,7 +5,12 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:padding="10dp">
-    
+
+    <Spinner
+        android:id="@+id/savedScheduleSpinner"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
 <!--Date-->
     <TextView
         android:text="Work Date"
@@ -105,12 +110,26 @@
         android:inputType="numberDecimal"
         />
 
-<!--    Save Button-->
-    <Button
-        android:id="@+id/btnSave"
-        android:text="Save"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        />
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:dividerPadding="20dp"
+        android:orientation="horizontal">
+        <!--    Save Button-->
+        <Button
+            android:id="@+id/btnSave"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginRight="30dp"
+            android:text="Submit new date" />
+
+        <!--    Save Schedule Button-->
+        <Button
+            android:id="@+id/saveScheduleButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="30dp"
+            android:text="Save schedule for later" />
+    </LinearLayout>
 
 </LinearLayout>

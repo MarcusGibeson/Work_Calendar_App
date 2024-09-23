@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:orientation="vertical"
     android:layout_height="match_parent"
-    android:padding="10dp">
+    android:orientation="vertical"
+    android:padding="20dp">
 
     <!--Calendar View-->
     <CalendarView
@@ -13,29 +13,89 @@
         android:layout_height="307dp"
         android:dateTextAppearance="?android:attr/textAppearanceLarge" />
 
-<!--    Button to select multiple dates-->
+    <!--Button to select multiple dates-->
     <Button
         android:id="@+id/select_dates_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Select dates" />
 
-<!--    RecyclerView for displaying work details-->
+    <!--Table header for RecyclerView-->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@android:color/background_dark"
+        android:orientation="horizontal"
+        android:padding="8dp">
+
+        <!--Work Date Header-->
+        <TextView
+            android:id="@+id/header_work_date"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="Work Date"
+            android:textColor="@android:color/white"
+            android:textStyle="bold" />
+
+        <!--Start Time Header-->
+        <TextView
+            android:id="@+id/header_start_time"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="Start TIme"
+            android:textColor="@android:color/white"
+            android:textStyle="bold" />
+
+        <!--End Time Header-->
+        <TextView
+            android:id="@+id/header_end_time"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="End TIme"
+            android:textColor="@android:color/white"
+            android:textStyle="bold" />
+
+        <!--Wage Header-->
+        <TextView
+            android:id="@+id/header_wage"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="Wage"
+            android:textColor="@android:color/white"
+            android:textStyle="bold" />
+
+    </LinearLayout>
+
+    <!--RecyclerView for displaying work details-->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/work_details_recycler_view"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
+        android:layout_height="310dp"
+        android:layout_marginTop="0dp"
+        android:layout_weight="1"
+        android:background="#7EE1D5"
         android:scrollbars="vertical" />
 
     <!--Button to open Add Work Schedule Form-->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/addWorkFab"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_height="67dp"
         android:layout_gravity="end"
-        android:layout_marginTop="160dp"
-        android:src="@drawable/ic_add"
-        android:contentDescription="Add work schedule" />
+        android:layout_marginTop="16dp"
+        android:backgroundTint="@color/colorPrimary"
+        android:contentDescription="Add work schedule"
+        app:maxImageSize="50dp"
+        app:srcCompat="@drawable/add_activity_plus"
+        app:tint="@android:color/white" />
+
 
 </LinearLayout>

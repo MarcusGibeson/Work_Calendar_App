@@ -3,38 +3,49 @@
     android:layout_height="wrap_content"
     android:layout_width="match_parent"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:padding="4dp">
 
-    <!--Work Date -->
-    <TextView
-        android:id="@+id/work_date"
-        android:layout_width="wrap_content"
+    <TableLayout
+        android:id="@+id/workDetailsTable"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Work Date"
-        android:textSize="18sp" />
+        android:background="#CF3434"
+        android:padding="0dp"
+        android:stretchColumns="*">
 
-    <!--Start Time -->
-    <TextView
-        android:id="@+id/start_time"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Start Time"
-        android:textSize="16sp" />
+        <TableRow>
+            <!--Work Date -->
+            <TextView
+                android:id="@+id/work_date"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Work Date"
+                android:textSize="18sp" />
 
-    <!--End Time -->
-    <TextView
-        android:id="@+id/end_time"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="End Time"
-        android:textSize="16sp" />
+            <!--Start Time -->
+            <TextView
+                android:id="@+id/start_time"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Start Time"
+                android:textSize="16sp" />
 
-    <!--Wage -->
-    <TextView
-        android:id="@+id/wage_text"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Wage"
-        android:textSize="16sp" />
+            <!--End Time -->
+            <TextView
+                android:id="@+id/end_time"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="End Time"
+                android:textSize="16sp" />
 
+
+            <!--Wage -->
+            <TextView
+                android:id="@+id/wage_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Wage"
+                android:textSize="16sp" />
+        </TableRow>
+    </TableLayout>
 </LinearLayout>

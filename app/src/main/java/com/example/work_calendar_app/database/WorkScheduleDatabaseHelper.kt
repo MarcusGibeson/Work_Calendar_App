@@ -5,6 +5,7 @@ import android.content.Context
 import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
+import android.util.Log
 import com.example.work_calendar_app.models.WorkSchedule
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -16,8 +17,10 @@ class WorkScheduleDatabaseHelper(context: Context) : SQLiteOpenHelper(context, D
         private const val DATABASE_NAME = "work_schedule.db"
         private const val DATABASE_VERSION = 1
         private const val TABLE_NAME = "work_schedule"
+        private const val SECOND_TABLE_NAME = "saved_schedules"
         private const val COLUMN_ID = "id"
         private const val COLUMN_DATE = "work_date"
+        private const val COLUMN_SCHEDULE_NAME = "schedule_name"
         private const val COLUMN_START_TIME = "start_time"
         private const val COLUMN_END_TIME = "end_time"
         private const val COLUMN_BREAK_TIME_MINUTES = "break_time_minutes"
@@ -26,6 +29,8 @@ class WorkScheduleDatabaseHelper(context: Context) : SQLiteOpenHelper(context, D
         private const val COLUMN_OVERTIME_RATE = "overtime_rate"
         private const val COLUMN_TOTAL_EARNINGS = "total_earnings"
     }
+
+
 
     override fun onCreate(db: SQLiteDatabase?) {
         val createTableQuery = ("CREATE TABLE $TABLE_NAME (" +
@@ -39,6 +44,18 @@ class WorkScheduleDatabaseHelper(context: Context) : SQLiteOpenHelper(context, D
                 "$COLUMN_OVERTIME_RATE REAL, " +
                 "$COLUMN_TOTAL_EARNINGS REAL )")
         db?.execSQL(createTableQuery)
+
+        val createSecondTableQuery = ("CREATE TABLE $SECOND_TABLE_NAME (" +
+                "$COLUMN_ID INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                "$COLUMN_SCHEDULE_NAME TEXT NOT NULL, " +
+                "$COLUMN_START_TIME TEXT, " +
+                "$COLUMN_END_TIME TEXT, " +
+                "$COLUMN_BREAK_TIME_MINUTES INTEGER, "+
+                "$COLUMN_PAY_TYPE TEXT, " +
+                "$COLUMN_PAY_RATE REAL, " +
+                "$COLUMN_OVERTIME_RATE REAL, " +
+                "$COLUMN_TOTAL_EARNINGS REAL )")
+        db?.execSQL(createSecondTableQuery)
     }
 
     override fun onUpgrade(db: SQLiteDatabase?, oldVersion: Int, newVersion: Int) {
@@ -46,61 +63,81 @@ class WorkScheduleDatabaseHelper(context: Context) : SQLiteOpenHelper(context, D
         onCreate(db)
     }
 
-    fun insertWorkSchedule(date: String, startTime: String, endTime: String, breakMinutes: Int, payType: String, payRate: Double, overtimeRate: Double, totalEarnings: Double): Long {
+    fun insertWorkSchedule(date: String, startTime: String, endTime: String, breakMinutes: Int, payType: String, payRate: Double, overtimeRate: Double, totalEarnings: Double): Boolean {
         val db = this.writableDatabase
-        val contentValues = ContentValues()
-        contentValues.put(COLUMN_DATE, date)
-        contentValues.put(COLUMN_START_TIME, startTime)
-        contentValues.put(COLUMN_END_TIME, endTime)
-        contentValues.put(COLUMN_BREAK_TIME_MINUTES, breakMinutes)
-        contentValues.put(COLUMN_PAY_TYPE, payType)
-        contentValues.put(COLUMN_PAY_RATE, payRate)
-        contentValues.put(COLUMN_OVERTIME_RATE, overtimeRate)
-        contentValues.put(COLUMN_TOTAL_EARNINGS, totalEarnings)
-        return db.insert(TABLE_NAME, null, contentValues)
-    }
-
-    fun getAllWorkSchedules(): List<WorkSchedule> {
-        val workSchedules = mutableListOf<WorkSchedule>()
-        val cursor = getWorkSchedule()
-
-        if(cursor.moveToFirst()) {
-            do {
-                val id = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_ID))
-                val date = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_DATE))
-                val startTime = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_START_TIME))
-                val endTime = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_END_TIME))
-                val breakTime = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_BREAK_TIME_MINUTES))
-                val payType = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_PAY_TYPE))
-                val payRate = cursor.getDouble(cursor.getColumnIndexOrThrow(COLUMN_PAY_RATE))
-                val overtimeRate = cursor.getDouble(cursor.getColumnIndexOrThrow(
-                    COLUMN_OVERTIME_RATE
-                ))
-                val totalEarnings = cursor.getDouble(cursor.getColumnIndexOrThrow(
-                    COLUMN_TOTAL_EARNINGS
-                ))
-                val workSchedule = WorkSchedule(id, date, startTime, endTime, breakTime, payType, payRate, overtimeRate, totalEarnings)
-                workSchedules.add(workSchedule);
-
-            } while (cursor.moveToNext())
+        val values = ContentValues().apply {
+            put(COLUMN_DATE, date)
+            put(COLUMN_START_TIME, startTime)
+            put(COLUMN_END_TIME, endTime)
+            put(COLUMN_BREAK_TIME_MINUTES, breakMinutes)
+            put(COLUMN_PAY_TYPE, payType)
+            put(COLUMN_PAY_RATE, payRate)
+            put(COLUMN_OVERTIME_RATE, overtimeRate)
+            put(COLUMN_TOTAL_EARNINGS, totalEarnings)
         }
-
-        cursor.close()
-        return workSchedules
+        return try {
+            val newRowId = db.insert("work_schedule", null, values)
+            if (newRowId != -1L) {
+                Log.d("Database", "Work Schedule inserted succesffuly with ID: $newRowId")
+                true
+            } else {
+                Log.e("Database", "Failed to insert work schedule")
+                false
+            }
+        } catch (e: Exception) {
+            Log.e("Database", "Error while inserting work schedule: ${e.message}")
+            false
+        } finally {
+            db.close()
+        }
     }
 
-    fun getWorkSchedule(): Cursor {
-        val db = this.readableDatabase
-        return db.rawQuery("SELECT * FROM $TABLE_NAME", null)
+    fun insertSavedSchedule(name: String, startTime: String, endTime: String, breakTime: Int, payType: String, hourlyRate: Double, overtimeRate: Double) {
+        val db = writableDatabase
+        val values = ContentValues().apply {
+            put(COLUMN_SCHEDULE_NAME, name)
+            put(COLUMN_START_TIME, startTime)
+            put(COLUMN_END_TIME, endTime)
+            put(COLUMN_BREAK_TIME_MINUTES, breakTime)
+            put(COLUMN_PAY_TYPE, payType)
+            put(COLUMN_PAY_RATE, hourlyRate)
+            put(COLUMN_OVERTIME_RATE, overtimeRate)
+        }
+        db.insert("saved_schedules", null, values)
+        Log.d("Database", "Schedule save: $name")
     }
 
-    fun getWorkScheduleBetweenDates(startDate: Date, endDate: Date): Cursor {
-        val db = this.readableDatabase
-        val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
 
-        val query = "SELECT * FROM $TABLE_NAME WHERE work_date BETWEEN ? AND ?"
-        val cursor = db.rawQuery(query, arrayOf(dateFormat.format(startDate), dateFormat.format(endDate)))
+    fun getAllWorkSchedule(): Cursor {
+        val db = this.readableDatabase
+        return db.rawQuery("SELECT * FROM work_schedule", null)
+    }
+
+    fun getWorkScheduleByDate(date: String): Cursor {
+        val db = this.readableDatabase
+
+        //Define a query to fetch work schedule for a specific date
+        val query = "SELECT * FROM work_schedule WHERE work_date = ?"
+
+        //Execute the query and return the result
+        return db.rawQuery(query, arrayOf(date))
+    }
+
+    fun getWorkScheduleBetweenDates(startDate: String, endDate: String): Cursor {
+        val db = this.readableDatabase
+
+        val query = "SELECT * FROM work_schedule WHERE work_date BETWEEN ? AND ?"
+        val cursor = db.rawQuery(query, arrayOf(startDate, endDate))
 
         return cursor
     }
+
+
+    fun getAllSavedSchedules(): Cursor {
+        val db = this.readableDatabase
+        return db.rawQuery("SELECT * FROM saved_schedules", null)
+    }
+
+
+
 }
