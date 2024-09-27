@@ -1,6 +1,7 @@
 package com.example.work_calendar_app
 
 
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.graphics.Rect
@@ -11,6 +12,8 @@ import androidx.compose.material3.Button
 import android.widget.CalendarView
 import android.widget.Toast
 import androidx.activity.compose.setContent
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -63,6 +66,7 @@ import java.text.SimpleDateFormat
 import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalTime
+import java.time.Month
 import java.time.format.DateTimeFormatter
 import java.util.Date
 import java.util.Locale
@@ -70,22 +74,57 @@ import java.util.Locale
 class MainActivity : AppCompatActivity() {
 
     private lateinit var dbHelper: WorkScheduleDatabaseHelper
-    private lateinit var workDetailsAdapter: WorkDetailsAdapter
+    private lateinit var addWorkActivityLauncher: ActivityResultLauncher<Intent>
+    var entryEdited by mutableStateOf(false)
+    private var workEntriesChanged by mutableStateOf(0)
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent {
-            MaterialTheme {
-                CalendarContent()
+        addWorkActivityLauncher = registerForActivityResult(
+            ActivityResultContracts.StartActivityForResult()
+        ) { result ->
+            if (result.resultCode == Activity.RESULT_OK) {
+                val data: Intent? = result.data
+                onAddOrUpdateOrDeleteEntry()
+
             }
         }
+        setContent {
+            var workEntries by remember { mutableStateOf( mutableMapOf<Long, WorkEntry>()) }
+            var currentMonth by remember { mutableStateOf(LocalDate.now()) }
 
-        //Initalize RecyclerView
-        workDetailsAdapter = WorkDetailsAdapter(mutableListOf())
+            MaterialTheme {
+                CalendarContent(
+                    workEntries = workEntries,
+                    onMonthChanged = { newMonth ->
+                        //Update current month
+                        currentMonth = currentMonth.withMonth(newMonth.value)
+                        workEntries = fetchWorkEntriesForMonth(currentMonth.month.value, currentMonth.year)
+                    },
+                    entryEdited = entryEdited,
+                    onEntryEditedChange = { isEdited ->
+                        entryEdited = isEdited
+                    },
+                    onWorkEntriesChanged = { refreshWorkEntries() }
+                )
+            }
+        }
+    }
+
+
+
+    fun refreshWorkEntries() {
+        workEntriesChanged++
+    }
+
+    fun onAddOrUpdateOrDeleteEntry() {
+        refreshWorkEntries()
+        entryEdited = true
     }
 
     @Composable
-    fun CalendarContent() {
+    fun CalendarContent(workEntries: MutableMap<Long, WorkEntry>, onMonthChanged: (Month) -> Unit, entryEdited: Boolean, onEntryEditedChange: (Boolean) -> Unit, onWorkEntriesChanged: () -> Unit) {
         var currentMonth by remember { mutableStateOf(LocalDate.now()) }
         var selectedDay by remember { mutableStateOf(-1) }
         var showPopup by remember { mutableStateOf(false) }
@@ -108,7 +147,9 @@ class MainActivity : AppCompatActivity() {
 
         //Dummy data for workDays and workEntries
         val workDays = remember { mutableStateListOf<Int>() }
-        val workEntries = remember { mutableMapOf<Long, WorkEntry>() }
+
+
+
 
         //Initial load
         LaunchedEffect(Unit) {
@@ -117,7 +158,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         //Fetch data from database in a LaunchedEffect
-        LaunchedEffect(currentMonth) {
+        LaunchedEffect(currentMonth, workEntriesChanged) {
             workDays.clear()
             loadAllWorkSchedules(workDays, workEntries, currentMonth.monthValue, currentMonth.year)
             Log.d("WorkDays", "Current month: ${currentMonth.month} ${currentMonth.year}, Work Days: $workDays")
@@ -129,7 +170,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         //Fetch the data for the selected day
-        LaunchedEffect(selectedDay) {
+        LaunchedEffect(selectedDay, entryEdited) {
             if (selectedDay != -1 && !isSelectingRange) {
                 val formattedDate = String.format("%04d-%02d-%02d", currentMonth.year, currentMonth.monthValue, selectedDay)
                 Log.d("MainActivity","formatted date: $formattedDate")
@@ -144,6 +185,8 @@ class MainActivity : AppCompatActivity() {
                     showPopup = true
                 }
             }
+
+            onEntryEditedChange(false)
         }
 
 
@@ -172,7 +215,10 @@ class MainActivity : AppCompatActivity() {
                     .fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Button(onClick = {currentMonth = currentMonth.minusMonths(1)}) {
+                Button(onClick = {
+                    currentMonth = currentMonth.minusMonths(1)
+                    onMonthChanged(currentMonth.month)
+                }) {
                     Text("Previous")
                 }
                 Text(
@@ -181,7 +227,10 @@ class MainActivity : AppCompatActivity() {
                         PaddingValues(start = 16.dp, end = 16.dp, top = 10.dp)),
                     fontSize = 16.sp
                 )
-                Button(onClick = { currentMonth = currentMonth.plusMonths(1) }) {
+                Button(onClick = {
+                    currentMonth = currentMonth.plusMonths(1)
+                    onMonthChanged(currentMonth.month)
+                }) {
                     Text("Next")
                 }
             }
@@ -238,7 +287,7 @@ class MainActivity : AppCompatActivity() {
             Button(
                 onClick = {
                     val intent = Intent(this@MainActivity, AddWorkActivity::class.java)
-                    context.startActivity(intent)
+                    addWorkActivityLauncher.launch(intent)
                 },
                 modifier = Modifier
                     .padding(start = 200.dp, end = 16.dp)
@@ -263,6 +312,9 @@ class MainActivity : AppCompatActivity() {
                 ) { showPopup = false }
             }
         }
+
+
+
     }
 
 
@@ -294,6 +346,7 @@ class MainActivity : AppCompatActivity() {
 
                 //Update the existing workEntries map with the modified entry
                 workEntries[updatedEntry.id] = updatedEntry
+                onAddOrUpdateOrDeleteEntry()
             }else {
                 Log.e("onSave", "Failed to update entry")
             }
@@ -305,8 +358,10 @@ class MainActivity : AppCompatActivity() {
                 if (isSuccess) {
                     //Remove the entry from workEntries after successful deletion
                     workEntries.remove(entryToDelete.id)
+
                     showDialog = false
                     Log.d("WorkDetails", "Successfully deleted entry")
+                    onAddOrUpdateOrDeleteEntry()
                 }else {
                     Log.e("WorkDetails", "Failed to delete entry")
                 }
@@ -382,7 +437,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        //Show Dialo if the state is true
+        //Show Dialog if the state is true
         if (showDialog && selectedWorkEntry != null) {
             WorkDetailsPopUp(
                 workEntry = selectedWorkEntry!!,
@@ -625,6 +680,49 @@ class MainActivity : AppCompatActivity() {
         return WorkDetails(0, "", "", "","", 0.0)
     }
 
+    private fun fetchWorkEntriesForMonth(month: Int, year: Int): MutableMap<Long, WorkEntry> {
+        //Create the start and end dates for the month
+        val startOfMonth = LocalDate.of(year, month, 1)
+        val endOfMonth = startOfMonth.withDayOfMonth(startOfMonth.lengthOfMonth())
+
+        //Format dates for the query
+        val formattedStartDate = formatDateForQuery(startOfMonth.toString())
+        val formattedEndDate = formatDateForQuery(endOfMonth.toString())
+
+        Log.d("MainActivity", "Fetching work details for month: $month/$year between $formattedStartDate and $formattedEndDate")
+
+        //Query the database to fetch work times for the entire month
+        val cursor = dbHelper.getWorkScheduleBetweenDates(formattedStartDate, formattedEndDate)
+
+        val workEntries = mutableMapOf<Long, WorkEntry>()
+
+        //Iterate through the cursor to get work times
+        if (cursor != null && cursor.moveToFirst()) {
+            do {
+                val id = cursor.getLong(cursor.getColumnIndexOrThrow("id"))
+                val workDate = cursor.getString(cursor.getColumnIndexOrThrow("work_date"))
+                val startTime = cursor.getString(cursor.getColumnIndexOrThrow("start_time"))
+                val endTime = cursor.getString(cursor.getColumnIndexOrThrow("end_time"))
+                val breakTime = cursor.getInt(cursor.getColumnIndexOrThrow("break_time_minutes"))
+                val payType = cursor.getString(cursor.getColumnIndexOrThrow("pay_type"))
+                val payRate = cursor.getDouble(cursor.getColumnIndexOrThrow("pay_rate"))
+                val overtimeRate = cursor.getDouble(cursor.getColumnIndexOrThrow("overtime_rate"))
+                val wage = cursor.getDouble(cursor.getColumnIndexOrThrow("total_earnings"))
+
+                //Log or display the work detail
+                Log.d("MainActivity", "Loaded WorkDetail for month: $workDate, $startTime - $endTime, Wage: $wage")
+                val workDetail = WorkEntry(id, workDate, startTime, endTime, breakTime, payType, payRate, overtimeRate, wage)
+                workEntries[id] = workDetail
+            } while (cursor.moveToNext())
+            Log.d("MainActivity", "Work times displayed for month: ${workEntries.size} entries")
+            cursor.close()
+        } else {
+            Log.d("MainActivity", "No work times found for the selected month: $month/$year")
+            cursor?.close()
+        }
+        return workEntries
+    }
+
     private fun displayWorkTimesForSelectedDates(start: String, end: String) {
         Log.d("MainActivity", "Fetching work details between $start and $end")
 
@@ -663,10 +761,18 @@ class MainActivity : AppCompatActivity() {
 
 
     fun formatDateForQuery(date: String): String {
-        val sdf = SimpleDateFormat("MM/dd/yyyy", Locale.getDefault())
-        return SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(sdf.parse(date))
+        if (!isValidDateFormat(date)) {
+            val sdf = SimpleDateFormat("MM/dd/yyyy", Locale.getDefault())
+            return SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(sdf.parse(date))
+        } else {
+            return date
+        }
     }
 
+    fun isValidDateFormat(date: String): Boolean {
+        val regex = Regex("^\\d{4}-\\d{2}-\\d{2}$")
+        return regex.matches(date)
+    }
 
 
 

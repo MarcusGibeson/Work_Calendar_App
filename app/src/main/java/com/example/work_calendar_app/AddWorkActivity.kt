@@ -152,6 +152,7 @@ class AddWorkActivity : AppCompatActivity() {
             dbHelper.insertWorkSchedule(null, workDate, startTime, endTime, breakTime, payType, payRate, overtimePay, totalEarnings)
 
             Toast.makeText(this, "Work schedule added successfully!", Toast.LENGTH_SHORT).show()
+            setResult(RESULT_OK)
             finish()
         }
 
