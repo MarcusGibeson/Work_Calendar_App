@@ -1,216 +1,673 @@
 package com.example.work_calendar_app
 
+
+import android.content.Context
 import android.content.Intent
 import android.graphics.Rect
 import android.os.Bundle
 import android.util.Log
 import android.view.View
-import android.widget.Button
+import androidx.compose.material3.Button
 import android.widget.CalendarView
 import android.widget.Toast
-import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
-import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.recyclerview.widget.RecyclerView
 import com.example.work_calendar_app.adapters.WorkDetailsAdapter
+import com.example.work_calendar_app.calendar.DayDetailsPopup
+import com.example.work_calendar_app.calendar.WorkCalendar
 import com.example.work_calendar_app.data.WorkDetails
+import com.example.work_calendar_app.data.WorkEntry
 import com.example.work_calendar_app.database.WorkScheduleDatabaseHelper
-import com.google.android.material.datepicker.CalendarConstraints
-import com.google.android.material.datepicker.DateValidatorPointForward
-import com.google.android.material.datepicker.MaterialDatePicker
-import com.google.android.material.floatingactionbutton.FloatingActionButton
 import java.text.SimpleDateFormat
+import java.time.Duration
+import java.time.LocalDate
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 import java.util.Date
 import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var dbHelper: WorkScheduleDatabaseHelper
-    private lateinit var calendarView: CalendarView
-    private lateinit var workDetailsRecyclerView: RecyclerView
     private lateinit var workDetailsAdapter: WorkDetailsAdapter
-
-    class CustomItemDecoration(private val spacing: Int) : RecyclerView.ItemDecoration() {
-        override fun getItemOffsets(
-            outRect: Rect,
-            view: View,
-            parent: RecyclerView,
-            state: RecyclerView.State
-        ) {
-            super.getItemOffsets(outRect, view, parent, state)
-            outRect.top = spacing
-            outRect.bottom = spacing
-        }
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        setContent {
+            MaterialTheme {
+                CalendarContent()
+            }
+        }
 
-        //Initialize RecylclerView
-        workDetailsRecyclerView = findViewById(R.id.work_details_recycler_view)
-        workDetailsRecyclerView.layoutManager = LinearLayoutManager(this)
-        workDetailsRecyclerView.addItemDecoration(CustomItemDecoration(20))
+        //Initalize RecyclerView
         workDetailsAdapter = WorkDetailsAdapter(mutableListOf())
-        workDetailsRecyclerView.adapter = workDetailsAdapter
-
-        dbHelper = WorkScheduleDatabaseHelper(this)
-        loadAllWorkSchedules()
-        calendarView = findViewById(R.id.calendarView)
-
-        //Create the Date Range Picker
-        val builder = MaterialDatePicker.Builder.dateRangePicker()
-            .setTitleText("Select work days")
-            .setCalendarConstraints(
-                CalendarConstraints.Builder()
-                    .build()
-            )
-        val datePicker = builder.build()
-
-        //Show date picker when needed
-        findViewById<Button>(R.id.select_dates_button).setOnClickListener{
-            datePicker.show(supportFragmentManager, "MATERIAL_DATE_PICKER")
-        }
-
-        //Handle the selected dates
-        datePicker.addOnPositiveButtonClickListener { selection ->
-            val startDate = selection.first
-            val endDate = selection.second
-
-            //Display the selected date range
-            Toast.makeText(this, "Selected: $startDate to $endDate", Toast.LENGTH_LONG).show()
-
-            //Add logic to display the time worked for each day in the selected range
-            displayWorkTimesForSelectedDates(startDate, endDate)
-        }
-
-        //Add work schedule button
-        findViewById<FloatingActionButton>(R.id.addWorkFab).setOnClickListener {
-            val intent = Intent(this, AddWorkActivity::class.java)
-            startActivity(intent)
-        }
-
-        //Calendar item click listener to show work details
-        calendarView.setOnDateChangeListener { view, year, month, dayOfMonth ->
-            val selectedMonth = month + 1
-            val selectedDate = String.format("%02d/%02d/%d", selectedMonth, dayOfMonth, year)
-            //Query DB for work details on this date and display them
-            showWorkDetailsForDate(selectedDate)
-        }
-
     }
 
-    private fun loadAllWorkSchedules() {
+    @Composable
+    fun CalendarContent() {
+        var currentMonth by remember { mutableStateOf(LocalDate.now()) }
+        var selectedDay by remember { mutableStateOf(-1) }
+        var showPopup by remember { mutableStateOf(false) }
+
+        //Mode to capture dates
+        var isSelectingRange by remember { mutableStateOf(false) }
+        var firstSelectedDate by remember { mutableStateOf<String?> (null) }
+        var secondSelectedDate by remember { mutableStateOf<String?>(null) }
+
+        //Store fetched work details for the selected day
+        var workDetailsForPopup by remember { mutableStateOf(WorkDetails(0,"","","","",0.0)) }
+
+        //Store fetched work details for the selected range
+        val workDetailsList = remember { mutableStateListOf<WorkDetails>()}
+
+        //Fetch context and database-related work entries
+        val context = LocalContext.current
+        val daysInMonth = currentMonth.lengthOfMonth()
+        val firstDayOfMonth = currentMonth.withDayOfMonth(1).dayOfWeek.value
+
+        //Dummy data for workDays and workEntries
+        val workDays = remember { mutableStateListOf<Int>() }
+        val workEntries = remember { mutableMapOf<Long, WorkEntry>() }
+
+        //Initial load
+        LaunchedEffect(Unit) {
+            loadAllWorkSchedules(workDays, workEntries, currentMonth.monthValue, currentMonth.year)
+            Log.d("Workdays", "Initial load - Work Days: $workDays")
+        }
+
+        //Fetch data from database in a LaunchedEffect
+        LaunchedEffect(currentMonth) {
+            workDays.clear()
+            loadAllWorkSchedules(workDays, workEntries, currentMonth.monthValue, currentMonth.year)
+            Log.d("WorkDays", "Current month: ${currentMonth.month} ${currentMonth.year}, Work Days: $workDays")
+        }
+
+        //Reset SelectedDay when switching modes
+        LaunchedEffect(isSelectingRange) {
+            selectedDay = -1
+        }
+
+        //Fetch the data for the selected day
+        LaunchedEffect(selectedDay) {
+            if (selectedDay != -1 && !isSelectingRange) {
+                val formattedDate = String.format("%04d-%02d-%02d", currentMonth.year, currentMonth.monthValue, selectedDay)
+                Log.d("MainActivity","formatted date: $formattedDate")
+                val workDetails = getWorkDetailsForDate(context, formattedDate)
+
+                //check if work details are valid
+                workDetailsForPopup = workDetails
+                if (workDetails.startTime === "" && workDetails.endTime === "") {
+                    Log.d("MainActivity","No valid work details for popup")
+                } else {
+                    Log.d("Popup","Work details: $workDetails")
+                    showPopup = true
+                }
+            }
+        }
+
+
+        //Main Layout of Calendar
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(8.dp)
+        ) {
+
+            //Button to switch modes
+            Button(onClick = {
+                isSelectingRange = !isSelectingRange
+                firstSelectedDate = null
+                secondSelectedDate = null
+                selectedDay = -1
+            }) {
+                Text(if (isSelectingRange) "Switch to Single Date Mode" else "Switch to Date Range Mode")
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+            //Row for previous and next buttons with Month title in between
+            Row(
+                modifier = Modifier
+                    .padding(bottom = 16.dp)
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Button(onClick = {currentMonth = currentMonth.minusMonths(1)}) {
+                    Text("Previous")
+                }
+                Text(
+                    text = currentMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
+                    modifier = Modifier.padding(
+                        PaddingValues(start = 16.dp, end = 16.dp, top = 10.dp)),
+                    fontSize = 16.sp
+                )
+                Button(onClick = { currentMonth = currentMonth.plusMonths(1) }) {
+                    Text("Next")
+                }
+            }
+
+            //Row for weekday headers
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                horizontalArrangement = Arrangement.Start
+            ) {
+                Spacer(modifier = Modifier.weight(0.3f))
+
+                val daysOfWeek = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
+                for (day in daysOfWeek) {
+                    Text (
+                        text = day,
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+
+            //Custom Work Calendar
+            WorkCalendar(currentMonth, daysInMonth = daysInMonth, workDays = workDays.toList()) { day ->
+                if (isSelectingRange) {
+                    val monthValue = currentMonth.monthValue
+                    val yearValue = currentMonth.year
+
+                    if (firstSelectedDate == null) {
+                        firstSelectedDate = "$monthValue/$day/$yearValue"
+                        Toast.makeText(context, "First date selected: $firstSelectedDate", Toast.LENGTH_SHORT).show()
+                    } else if (secondSelectedDate == null) {
+                        secondSelectedDate = "$monthValue/$day/$yearValue"
+                        Toast.makeText(context, "Second date selected: $secondSelectedDate", Toast.LENGTH_SHORT).show()
+                        displayWorkTimesForSelectedDates(firstSelectedDate!!, secondSelectedDate!!)
+                        isSelectingRange = false
+                    }
+                } else {
+                    selectedDay = day
+                    showPopup = true
+                }
+            }
+
+
+            Column {
+                //Add Calendar grid
+                for (i in 1..daysInMonth) {
+                    //Logic to display each day
+                }
+            }
+
+            //Add work schedule button
+            Button(
+                onClick = {
+                    val intent = Intent(this@MainActivity, AddWorkActivity::class.java)
+                    context.startActivity(intent)
+                },
+                modifier = Modifier
+                    .padding(start = 200.dp, end = 16.dp)
+            ){
+                Text("Add Work Entry")
+            }
+
+
+
+            //Composable view for Work Details
+            Text(text = "  Work Date  |  Work Time  ", modifier = Modifier.padding(vertical = 0.dp))
+            WorkDetailsList(workEntries, currentMonth)
+
+            //Popup for displaying details
+            if (showPopup && selectedDay != -1 && !isSelectingRange) {
+                DayDetailsPopup(
+                    selectedDay = selectedDay,
+                    startTime = workDetailsForPopup.startTime,
+                    endTime = workDetailsForPopup.endTime,
+                    breakTime = workDetailsForPopup.breakTime,
+                    wage = workDetailsForPopup.wage
+                ) { showPopup = false }
+            }
+        }
+    }
+
+
+    @Composable
+    fun WorkDetailsList(workEntries: MutableMap<Long, WorkEntry>, currentMonth: LocalDate) {
+        //Dialog state to show or hide the details dialog
+        var showDialog by remember { mutableStateOf(false) }
+        var selectedWorkEntry by remember { mutableStateOf<WorkEntry?>(null) }
+
+        //Extracting the current year and month for date formatting
+        val currentYear = currentMonth.year
+        val currentMonthValue = currentMonth.monthValue
+
+        //Function to update the workEntries when saving a new or modified entry
+        val onSaveEntry: (WorkEntry) -> Unit ={ updatedEntry ->
+            Log.d("onSave", "updatedEntry.id: ${updatedEntry.id}")
+            Log.d("onSave", "updatedEntry.workDate: ${updatedEntry.workDate}")
+            Log.d("onSave", "updatedEntry.startTime: ${updatedEntry.startTime}")
+            Log.d("onSave", "updatedEntry.endTime: ${updatedEntry.endTime}")
+            Log.d("onSave", "updatedEntry.breakTime: ${updatedEntry.breakTime}")
+            Log.d("onSave", "updatedEntry.payType: ${updatedEntry.payType}")
+            Log.d("onSave", "updatedEntry.payRate: ${updatedEntry.payRate}")
+            Log.d("onSave", "updatedEntry.overtimeRate: ${updatedEntry.overtimeRate}")
+            Log.d("onSave", "updatedEntry.netEarnings: ${updatedEntry.netEarnings}")
+            val isSuccess = dbHelper.insertWorkSchedule(updatedEntry.id, updatedEntry.workDate, updatedEntry.startTime, updatedEntry.endTime, updatedEntry.breakTime, updatedEntry.payType, updatedEntry.payRate,updatedEntry.overtimeRate, updatedEntry.netEarnings)
+            if (isSuccess) {
+                showDialog = false
+                Log.d("onSave", "Successfully update entry")
+
+                //Update the existing workEntries map with the modified entry
+                workEntries[updatedEntry.id] = updatedEntry
+            }else {
+                Log.e("onSave", "Failed to update entry")
+            }
+        }
+
+        val onDeleteEntry: () -> Unit = {
+            selectedWorkEntry?.let { entryToDelete ->
+                val isSuccess = dbHelper.deleteWorkEntry(entryToDelete.id)
+                if (isSuccess) {
+                    //Remove the entry from workEntries after successful deletion
+                    workEntries.remove(entryToDelete.id)
+                    showDialog = false
+                    Log.d("WorkDetails", "Successfully deleted entry")
+                }else {
+                    Log.e("WorkDetails", "Failed to delete entry")
+                }
+            }
+        }
+
+        //Generate work details for the current month
+        val workDetailsList = workEntries.mapNotNull { (id, workEntry) ->
+            val workDate = workEntry.workDate
+            val day = workDate.substring(8, 10).toInt()
+
+            //Create a Localdate for the current year, current month, and specific day
+            val workDateLocal = LocalDate.of(currentYear, currentMonthValue, day)
+
+            //Check if the day is valid for the current month and year
+            if (workDateLocal.month == currentMonth.month && workDateLocal.year == currentYear) {
+                WorkDetails(
+                    id = workEntry.id,
+                    workDate = workDateLocal.format(DateTimeFormatter.ofPattern("MMM dd, yyyy")),
+                    startTime = workEntry.startTime,
+                    endTime = workEntry.endTime,
+                    breakTime = workEntry.breakTime.toString(),
+                    wage = workEntry.netEarnings
+                )
+            } else {
+                null
+            }
+        }
+
+        Column(modifier = Modifier.fillMaxSize()) {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .weight(1f)
+                    .padding(end = 8.dp) //padding for scrollbar
+            ) {
+                items(workDetailsList) { workDetail ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(75.dp)
+                            .padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "${workDetail.workDate}:",
+                                modifier = Modifier.weight(1f),
+                                color = Color.Blue
+                            )
+                            Text(
+                                text = " ${workDetail.startTime} - ${workDetail.endTime}"
+                            )
+                        }
+                        Text(
+                            text = "$${workDetail.wage}",
+                            modifier = Modifier.padding(start = 8.dp, end = 16.dp),
+                            color = Color.Red
+                        )
+
+                        Text(
+                            text = "Details",
+                            modifier = Modifier
+                                .clickable {
+                                    val workDateKey = workDetail.id
+                                    selectedWorkEntry = workEntries[workDateKey]
+                                    showDialog = true
+                                },
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
+        }
+
+        //Show Dialo if the state is true
+        if (showDialog && selectedWorkEntry != null) {
+            WorkDetailsPopUp(
+                workEntry = selectedWorkEntry!!,
+                onClose = { showDialog = false },
+                onSave = onSaveEntry,
+                onDelete = onDeleteEntry
+            )
+        }
+    }
+
+    @Composable
+    fun WorkDetailsPopUp(workEntry: WorkEntry, onClose: () -> Unit,
+                         onSave: (WorkEntry) -> Unit, onDelete: () -> Unit) {
+        var isEditable by remember { mutableStateOf(false) }
+
+        //State variables for editing work entry details
+        var startTime by remember { mutableStateOf(workEntry.startTime) }
+        var endTime by remember { mutableStateOf(workEntry.endTime) }
+        var breakTime by remember { mutableStateOf(workEntry.breakTime) }
+        var payType by remember { mutableStateOf(workEntry.payType) }
+        var payRate by remember { mutableStateOf(workEntry.payRate) }
+        var overtimeRate by remember { mutableStateOf(workEntry.overtimeRate) }
+
+        Dialog(onDismissRequest = { onClose() }) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                shape = RoundedCornerShape(8.dp),
+                color = MaterialTheme.colorScheme.surface
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(text = "Work Details", style = MaterialTheme.typography.headlineSmall)
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    //Conditionally render fields based on isEditable
+                    if (isEditable) {
+                        //Editable Textfields
+                        TextField(value = startTime, onValueChange = { startTime = it }, label = { Text("Start Time")})
+                        TextField(value = endTime, onValueChange = { endTime = it }, label = { Text("End Time")})
+                        TextField(
+                            value = breakTime.toString(),
+                            onValueChange = {
+                                val newValue = it.toIntOrNull()
+                                if (newValue != null) {
+                                    breakTime = newValue
+                                }
+                            },
+                            label = { Text("Break Time(minutes)")}
+                        )
+                        TextField(value = payType, onValueChange = { payType = it }, label = { Text("Pay Type")})
+                        TextField(
+                            value = payRate.toString(),
+                            onValueChange = {
+                                val newValue = it.toDoubleOrNull()
+                                if (newValue != null) {
+                                    payRate = newValue
+                                }
+                            },
+                            label = { Text ("Pay Rate")}
+                        )
+                        TextField(
+                            value = overtimeRate.toString(),
+                            onValueChange = {
+                                val newValue = it.toDoubleOrNull()
+                                if (newValue != null) {
+                                    overtimeRate = newValue
+                                }
+                            },
+                            label = { Text ("Overtime Rate")}
+                        )
+                    } else {
+                        //Non-editable texts
+                        Text(text = "Start Time: $startTime")
+                        Text(text = "End Time: $endTime")
+                        Text(text = "Start Time: $breakTime")
+                        Text(text = "Break Time: $startTime")
+                        Text(text = "Pay Type: $payType")
+                        Text(text = "Pay Rate: $payRate")
+                        Text(text = "Overtime Rate: $overtimeRate")
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Row (
+                        horizontalArrangement = Arrangement.End,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        //Toggle between Edit and Save
+                        Button(onClick = {
+                            if (isEditable) {
+                                onSave(
+                                    workEntry.copy(
+                                        startTime = startTime,
+                                        endTime = endTime,
+                                        breakTime = breakTime,
+                                        payRate = payRate,
+                                        payType = payType,
+                                        overtimeRate = overtimeRate
+                                    )
+                                )
+                            }
+                            isEditable = !isEditable
+                        }) {
+                            Text(if (isEditable) "Save" else "Edit")
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    //Delete button
+                    Button(onClick = { onDelete() }) {
+                        Text("Delete")
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    //Close button
+                    Button(onClick = { onClose() }) {
+                        Text("Close")
+                    }
+                }
+            }
+        }
+    }
+
+    private fun loadAllWorkSchedules(workDays: MutableList<Int>, workEntries: MutableMap<Long, WorkEntry>, currentMonth: Int, currentYear: Int) {
+        dbHelper = WorkScheduleDatabaseHelper(this)
         val cursor = dbHelper.getAllWorkSchedule()
-        val workDetailsList = mutableListOf<WorkDetails>()
 
         if (cursor != null && cursor.moveToFirst()) {
             do {
+                val id = cursor.getLong(cursor.getColumnIndexOrThrow("id"))
                 val workDate = cursor.getString(cursor.getColumnIndexOrThrow("work_date"))
                 val startTime = cursor.getString(cursor.getColumnIndexOrThrow("start_time"))
                 val endTime = cursor.getString(cursor.getColumnIndexOrThrow("end_time"))
-                val wage = cursor.getDouble(cursor.getColumnIndexOrThrow("total_earnings"))
+                val breakTime = cursor.getInt(cursor.getColumnIndexOrThrow("break_time_minutes"))
+                val payType = cursor.getString(cursor.getColumnIndexOrThrow("pay_type"))
+                val payRate = cursor.getDouble(cursor.getColumnIndexOrThrow("pay_rate"))
+                val overtimeRate = cursor.getDouble(cursor.getColumnIndexOrThrow("overtime_rate"))
+                val netEarnings = cursor.getDouble(cursor.getColumnIndexOrThrow("total_earnings"))
 
-                val workDetail = WorkDetails(workDate, startTime, endTime, wage)
-                workDetailsList.add(workDetail)
+                if (workDate == null) {
+                    Log.e("MainActivity", "Invalid work date format: $workDate")
+                } else {
+                    //Extract month, day, and year from the workDate string
+                    if (workDate.length >= 10) {
 
-                Log.d("Main Activity", "Loaded WorkDetail: $workDetail")
+                        val workYear = workDate.substring(0, 4).toInt()
+                        val workMonth = workDate.substring(5, 7).toInt()
+                        val workDay = workDate.substring(8, 10).toInt()
+
+                        //Check if the workDate belongs to the current month and year in calendar
+                        if (workMonth == currentMonth && workYear == currentYear) {
+                            //Add the work entry to the list only if it's in the current month and year
+                            workEntries[id] = WorkEntry(
+                                id,
+                                workDate,
+                                startTime,
+                                endTime,
+                                breakTime,
+                                payType,
+                                payRate,
+                                overtimeRate,
+                                netEarnings
+                            )
+                            workDays.add(workDay)
+                        }
+                    } else {
+                        Log.e("MainActivity", "Invalid work date format: $workDate")
+                    }
+                }
             } while (cursor.moveToNext())
-
-            workDetailsAdapter.updateData(workDetailsList)
-            Log.d("MainActivity", "Total work schedules loaded: $(workDetailsList.size)")
         } else {
             Log.d("MainActivity", "No work schedules found.")
         }
     }
 
-    private fun showWorkDetailsForDate(date: String) {
-        //Log when function is called
-        Log.d("MainActivity", "showWorkDetailsForDate called for date: $date")
+    private fun calculateHoursWorked(startTime: String, endTime: String): Double {
+        val timeFormatter = DateTimeFormatter.ofPattern("hh:mm a")
 
+        val start = LocalTime.parse(startTime, timeFormatter)
+        val end = LocalTime.parse(endTime, timeFormatter)
+
+        var duration = Duration.between(start, end)
+
+        //for overnight shifts
+        if (duration.isNegative) {
+            duration = duration.plusHours(24)
+        }
+
+        val hoursWorked = duration.toMinutes() / 60.0
+        Log.d("AddWorKActivity", "Calculated hours worked: $hoursWorked (Start: $startTime, End: $endTime)")
+        return hoursWorked
+    }
+
+    private suspend fun getWorkDetailsForDate(context: Context, date: String): WorkDetails {
+        //Log when function is called
+        Log.d("MainActivity", "getWorkDetailsForDate called for date: $date")
+
+        val dbHelper = WorkScheduleDatabaseHelper(context)
         val cursor = dbHelper.getWorkScheduleByDate(date)
 
         //Log whether the cursor is null or not
         if (cursor == null) {
             Log.e("MainActivity", "Cursor is null. Database query failed for date: $date")
-            Toast.makeText(this, "Error fetching data for the selected date.", Toast.LENGTH_SHORT).show()
-            return
+            return WorkDetails(0,"", "", "", "", 0.0)
         }
-
-        //Create a list to hold the work details
-        val workDetailsList = mutableListOf<WorkDetails>()
-
-        //Log the number of rows in the cursor
-        Log.d("MainActivity", "Cursor row count: $(cursor.count)")
 
         //Check if the cursor has data
         if (cursor.moveToFirst()) {
-            do {
-                try {
-                    //Extract the data from the cursor
-                    val workDate = cursor.getString(cursor.getColumnIndexOrThrow("work_date"))
-                    val startTime = cursor.getString(cursor.getColumnIndexOrThrow("start_time"))
-                    val endTime = cursor.getString(cursor.getColumnIndexOrThrow("end_time"))
-                    val wage = cursor.getDouble(cursor.getColumnIndexOrThrow("total_earnings"))
-
-                    //Log the extracted data
-                    Log.d("MainActivity", "Work Date: $workDate, Start time: $startTime, End Time: $endTime, Wage: $wage")
-
-                    //Create a WorkDetails object and add it to the list
-                    val workDetail = WorkDetails(workDate, startTime, endTime, wage)
-                    workDetailsList.add(workDetail)
-
-                    Log.d("MainActivity", "Loaded WorkDetail for $date: $workDetail")
-                } catch (e: Exception) {
-                    //Log any exceptions encountered while reading the cursor data
-                    Log.e("MainActivity", "Error extracting work detail from cursor: ${e.message}")
-                }
-            } while (cursor.moveToNext())
-
-            //Update the adapter with the new list of work details
-            workDetailsAdapter.updateData(workDetailsList)
-            Log.d("MainActivity", "Work details updated for date: $date, count: ${workDetailsList.size}")
-        }else {
-            //If no data is found for the date
-            workDetailsAdapter.updateData(emptyList())
-            Log.d("MainActivity", "No work details found for date: $date")
-            Toast.makeText(this, "No work details for selected date.", Toast.LENGTH_SHORT).show()
-        }
-        //Close cursor to avoid memory leaks
-        cursor.close()
-    }
-
-    private fun displayWorkTimesForSelectedDates(startDate: Long, endDate: Long) {
-        val dateFormat = SimpleDateFormat("MM/dd/yyyy", Locale.getDefault())
-        val start = dateFormat.format(Date(startDate))
-        val end = dateFormat.format(Date(endDate))
-
-        Log.d("MainActivity", "Fetching work details between $start and $end")
-
-        //Query the database to fetch work times for each day between start and end
-        val cursor = dbHelper.getWorkScheduleBetweenDates(start ,end)
-
-        val workDetailsList = mutableListOf<WorkDetails>()
-        //Iterate through the cursor to get work times and display them
-        if (cursor != null && cursor.moveToFirst()) {
-            do {
+            try {
+                //Extract the data from the cursor
+                val id = cursor.getLong(cursor.getColumnIndexOrThrow("id"))
                 val workDate = cursor.getString(cursor.getColumnIndexOrThrow("work_date"))
                 val startTime = cursor.getString(cursor.getColumnIndexOrThrow("start_time"))
                 val endTime = cursor.getString(cursor.getColumnIndexOrThrow("end_time"))
+                val breakTime = cursor.getInt(cursor.getColumnIndexOrThrow("break_time_minutes")).toString()
+                val wage = cursor.getDouble(cursor.getColumnIndexOrThrow("total_earnings"))
+
+                //Log the extracted data
+                Log.d(
+                    "MainActivity",
+                    "Work Date: $workDate, Start time: $startTime, End Time: $endTime, Break Time: $breakTime, Wage: $wage"
+                )
+
+                //Create a WorkDetails object and return it
+                return WorkDetails(id, workDate, startTime, endTime, breakTime, wage)
+            } catch (e: Exception) {
+                //Log any exceptions encountered while reading the cursor data
+                Log.e("MainActivity", "Error extracting work detail from cursor: ${e.message}")
+            }
+        } else {
+            // If no data is found for the date
+            Log.d("MainActivity", "No work details found for date: $date")
+        }
+
+        //Close cursor to avoid memory leaks
+        cursor.close()
+        return WorkDetails(0, "", "", "","", 0.0)
+    }
+
+    private fun displayWorkTimesForSelectedDates(start: String, end: String) {
+        Log.d("MainActivity", "Fetching work details between $start and $end")
+
+        val formattedStartDate = formatDateForQuery(start)
+        val formattedEndDate = formatDateForQuery(end)
+
+        //Query the database to fetch work times for each day between start and end
+        val cursor = dbHelper.getWorkScheduleBetweenDates(formattedStartDate ,formattedEndDate)
+
+        val workDetailsList = mutableListOf<WorkDetails>()
+
+        //Iterate through the cursor to get work times and display them
+        if (cursor != null && cursor.moveToFirst()) {
+            do {
+                val id = cursor.getLong(cursor.getColumnIndexOrThrow("id"))
+                val workDate = cursor.getString(cursor.getColumnIndexOrThrow("work_date"))
+                val startTime = cursor.getString(cursor.getColumnIndexOrThrow("start_time"))
+                val endTime = cursor.getString(cursor.getColumnIndexOrThrow("end_time"))
+                val breakTime = cursor.getInt(cursor.getColumnIndexOrThrow("break_time_minutes")).toString()
                 val wage = cursor.getDouble(cursor.getColumnIndexOrThrow("total_earnings"))
 
                 //Display or append the work date and times to UI
                 Log.d("MainActivity", "Loaded WorkDetail for range: $workDate, $startTime - $endTime, Wage: $wage")
-                val workDetail = WorkDetails(workDate, startTime, endTime, wage)
+                val workDetail = WorkDetails(id, workDate, startTime, endTime, breakTime, wage)
                 workDetailsList.add(workDetail)
             } while (cursor.moveToNext())
-
-            //Update the adapter with the new list of work details
-            workDetailsAdapter.updateData(workDetailsList)
             Log.d("MainActivity", "Work times displayed, count: ${workDetailsList.size}")
+//            updateUIWithWorkDetails(workDetailsList)
+            cursor.close()
         } else {
             Log.d("MainActivity", "No work times found for the selected date range.")
-            workDetailsAdapter.updateData(emptyList())
+            workDetailsList.clear()
         }
+
     }
+
+
+    fun formatDateForQuery(date: String): String {
+        val sdf = SimpleDateFormat("MM/dd/yyyy", Locale.getDefault())
+        return SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(sdf.parse(date))
+    }
+
+
+
+
 }

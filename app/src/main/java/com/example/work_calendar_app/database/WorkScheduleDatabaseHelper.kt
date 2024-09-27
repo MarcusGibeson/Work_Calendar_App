@@ -63,10 +63,37 @@ class WorkScheduleDatabaseHelper(context: Context) : SQLiteOpenHelper(context, D
         onCreate(db)
     }
 
-    fun insertWorkSchedule(date: String, startTime: String, endTime: String, breakMinutes: Int, payType: String, payRate: Double, overtimeRate: Double, totalEarnings: Double): Boolean {
+    fun isValidDateFormat(date: String): Boolean {
+        val regex = Regex("^\\d{4}-\\d{2}-\\d{2}$")
+        return regex.matches(date)
+    }
+
+    fun insertWorkSchedule(id: Long?, date: String, startTime: String, endTime: String, breakMinutes: Int, payType: String, payRate: Double, overtimeRate: Double, totalEarnings: Double): Boolean {
         val db = this.writableDatabase
+        val sdf = SimpleDateFormat("yyyy/MM/dd", Locale.getDefault())
+        var formattedDate: String? = null
+        if (!isValidDateFormat(date)) {
+            formattedDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(sdf.parse(date))
+        }
+
+
+        // Log all the information being submitted
+        Log.d("Database", "Attempting to insert work schedule with the following details:")
+        if (!isValidDateFormat(date)){
+            Log.d("Database", "Date (Formatted): $formattedDate")
+        }else {
+            Log.d("Database", "Date (Original): $date")
+        }
+        Log.d("Database", "Start Time: $startTime")
+        Log.d("Database", "End Time: $endTime")
+        Log.d("Database", "Break Minutes: $breakMinutes")
+        Log.d("Database", "Pay Type: $payType")
+        Log.d("Database", "Pay Rate: $payRate")
+        Log.d("Database", "Overtime Rate: $overtimeRate")
+        Log.d("Database", "Total Earnings: $totalEarnings")
+
         val values = ContentValues().apply {
-            put(COLUMN_DATE, date)
+            put(COLUMN_DATE, formattedDate ?: date)
             put(COLUMN_START_TIME, startTime)
             put(COLUMN_END_TIME, endTime)
             put(COLUMN_BREAK_TIME_MINUTES, breakMinutes)
@@ -76,16 +103,31 @@ class WorkScheduleDatabaseHelper(context: Context) : SQLiteOpenHelper(context, D
             put(COLUMN_TOTAL_EARNINGS, totalEarnings)
         }
         return try {
-            val newRowId = db.insert("work_schedule", null, values)
-            if (newRowId != -1L) {
-                Log.d("Database", "Work Schedule inserted succesffuly with ID: $newRowId")
-                true
+            if (id != null) {
+                //Update existing entry by ID
+                val rowsUpdated =
+                    db.update("work_schedule", values, "$COLUMN_ID = ?", arrayOf(id.toString()))
+                if (rowsUpdated > 0) {
+                    Log.d("Database", "Work Schedule inserted/updated successfully")
+                    true
+                } else {
+                    Log.e("Database", "Failed to insert/update work schedule")
+                    false
+                }
             } else {
-                Log.e("Database", "Failed to insert work schedule")
-                false
+                //Insert new entry since no ID was provided
+                val newRowId = db.insert("work_schedule", null, values)
+
+                if (newRowId != -1L) {
+                    Log.d("Database", "Work schedule inserted successfully with ID: $newRowId")
+                    true
+                } else {
+                    Log.e("Database", "Failed to insert work schedule.")
+                    false
+                }
             }
         } catch (e: Exception) {
-            Log.e("Database", "Error while inserting work schedule: ${e.message}")
+            Log.e("Database", "Error while inserting/updating work schedule: ${e.message}")
             false
         } finally {
             db.close()
@@ -106,6 +148,14 @@ class WorkScheduleDatabaseHelper(context: Context) : SQLiteOpenHelper(context, D
         db.insert("saved_schedules", null, values)
         Log.d("Database", "Schedule save: $name")
     }
+
+    fun deleteWorkEntry(id: Long): Boolean {
+        val db = this.writableDatabase
+        val result = db.delete(TABLE_NAME, "$COLUMN_ID= ?", arrayOf(id.toString()))
+        db.close()
+        return result > 0
+    }
+
 
 
     fun getAllWorkSchedule(): Cursor {
@@ -137,7 +187,4 @@ class WorkScheduleDatabaseHelper(context: Context) : SQLiteOpenHelper(context, D
         val db = this.readableDatabase
         return db.rawQuery("SELECT * FROM saved_schedules", null)
     }
-
-
-
 }

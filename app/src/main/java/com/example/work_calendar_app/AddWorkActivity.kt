@@ -88,7 +88,7 @@ class AddWorkActivity : AppCompatActivity() {
             val day = calendar.get(Calendar.DAY_OF_MONTH)
 
             val datePickerDialog = DatePickerDialog(this, {_, selectedYear, selectedMonth, selectedDay ->
-                val formattedDate = String.format("%02d/%02d/%d",selectedMonth + 1, selectedDay, selectedYear)
+                val formattedDate = String.format("%d/%02d/%02d", selectedYear, selectedMonth + 1, selectedDay)
                 workDate.setText(formattedDate)
                 Log.d("AddWorkActivity", "Selected date: $formattedDate")
             }, year, month, day)
@@ -149,7 +149,7 @@ class AddWorkActivity : AppCompatActivity() {
             Log.d("AddWorkActivity", "Saving Work Schedule: Date: $workDate, Start time: $startTime, End time: $endTime, Break Time: $breakTime, Pay Type: $payType, Hourly Rate: $payRate, Overtime Pay: $overtimePay, Total Earnings: $totalEarnings ")
             //Insert into database
             val dbHelper = WorkScheduleDatabaseHelper(this)
-            dbHelper.insertWorkSchedule(workDate, startTime, endTime, breakTime, payType, payRate, overtimePay, totalEarnings)
+            dbHelper.insertWorkSchedule(null, workDate, startTime, endTime, breakTime, payType, payRate, overtimePay, totalEarnings)
 
             Toast.makeText(this, "Work schedule added successfully!", Toast.LENGTH_SHORT).show()
             finish()
@@ -199,7 +199,7 @@ class AddWorkActivity : AppCompatActivity() {
         }
 
         val hoursWorked = duration.toMinutes() / 60.0
-        Log.d("AddWorKActivity", "Calculated hours worked: $hoursWorked (Start: $startTime, End: $endTime)")
+        Log.d("AddWorkActivity", "Calculated hours worked: $hoursWorked (Start: $startTime, End: $endTime)")
         return hoursWorked
     }
 
