@@ -78,19 +78,19 @@ class WorkScheduleDatabaseHelper(context: Context) : SQLiteOpenHelper(context, D
 
 
         // Log all the information being submitted
-        Log.d("Database", "Attempting to insert work schedule with the following details:")
+        Log.d("Database-insertWorkSchedule", "Attempting to insert work schedule with the following details:")
         if (!isValidDateFormat(date)){
-            Log.d("Database", "Date (Formatted): $formattedDate")
+            Log.d("Database-insertWorkSchedule", "Date (Formatted): $formattedDate")
         }else {
-            Log.d("Database", "Date (Original): $date")
+            Log.d("Database-insertWorkSchedule", "Date (Original): $date")
         }
-        Log.d("Database", "Start Time: $startTime")
-        Log.d("Database", "End Time: $endTime")
-        Log.d("Database", "Break Minutes: $breakMinutes")
-        Log.d("Database", "Pay Type: $payType")
-        Log.d("Database", "Pay Rate: $payRate")
-        Log.d("Database", "Overtime Rate: $overtimeRate")
-        Log.d("Database", "Total Earnings: $totalEarnings")
+        Log.d("Database-insertWorkSchedule", "Start Time: $startTime")
+        Log.d("Database-insertWorkSchedule", "End Time: $endTime")
+        Log.d("Database-insertWorkSchedule", "Break Minutes: $breakMinutes")
+        Log.d("Database-insertWorkSchedule", "Pay Type: $payType")
+        Log.d("Database-insertWorkSchedule", "Pay Rate: $payRate")
+        Log.d("Database-insertWorkSchedule", "Overtime Rate: $overtimeRate")
+        Log.d("Database-insertWorkSchedule", "Total Earnings: $totalEarnings")
 
         val values = ContentValues().apply {
             put(COLUMN_DATE, formattedDate ?: date)
@@ -146,7 +146,7 @@ class WorkScheduleDatabaseHelper(context: Context) : SQLiteOpenHelper(context, D
             put(COLUMN_OVERTIME_RATE, overtimeRate)
         }
         db.insert("saved_schedules", null, values)
-        Log.d("Database", "Schedule save: $name")
+        Log.d("Database-insertSavedSchedule", "Schedule save: $name")
     }
 
     fun deleteWorkEntry(id: Long): Boolean {
@@ -178,6 +178,31 @@ class WorkScheduleDatabaseHelper(context: Context) : SQLiteOpenHelper(context, D
 
         val query = "SELECT * FROM work_schedule WHERE work_date BETWEEN ? AND ?"
         val cursor = db.rawQuery(query, arrayOf(startDate, endDate))
+
+        // Log the result: Check if the cursor has any results and log how many rows were returned
+        if (cursor != null && cursor.moveToFirst()) {
+            Log.d("DatabaseHelper-getWorkScheduleBetweenDates", "Query successful. Number of results: ${cursor.count}")
+
+            // Iterate over the cursor and log each row
+            do {
+                val id = cursor.getLong(cursor.getColumnIndexOrThrow("id"))
+                val workDate = cursor.getString(cursor.getColumnIndexOrThrow("work_date"))
+                val startTime = cursor.getString(cursor.getColumnIndexOrThrow("start_time"))
+                val endTime = cursor.getString(cursor.getColumnIndexOrThrow("end_time"))
+                val breakTime = cursor.getInt(cursor.getColumnIndexOrThrow("break_time_minutes"))
+                val payType = cursor.getString(cursor.getColumnIndexOrThrow("pay_type"))
+                val payRate = cursor.getDouble(cursor.getColumnIndexOrThrow("pay_rate"))
+                val overtimeRate = cursor.getDouble(cursor.getColumnIndexOrThrow("overtime_rate"))
+                val netEarnings = cursor.getDouble(cursor.getColumnIndexOrThrow("total_earnings"))
+
+                // Log each column in the current row
+                Log.d("DatabaseHelper-getWorkScheduleBetweenDates", "Row: ID: $id, WorkDate: $workDate, StartTime: $startTime, EndTime: $endTime, BreakTime: $breakTime, PayType: $payType, PayRate: $payRate, OvertimeRate: $overtimeRate, NetEarnings: $netEarnings")
+
+            } while (cursor.moveToNext())
+        } else {
+            Log.d("DatabaseHelper-getWorkScheduleBetweenDates", "Query returned no results.")
+        }
+
 
         return cursor
     }

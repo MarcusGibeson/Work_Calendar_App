@@ -329,6 +329,10 @@ class MainActivity : AppCompatActivity() {
         val currentYear = currentMonth.year
         val currentMonthValue = currentMonth.monthValue
 
+        // Log current month and year
+        Log.d("WorkDetailsList", "Current year: $currentYear, Current month: $currentMonthValue")
+
+
         //Function to update the workEntries when saving a new or modified entry
         val onSaveEntry: (WorkEntry) -> Unit ={ updatedEntry ->
             Log.d("onSave", "updatedEntry.id: ${updatedEntry.id}")
@@ -373,12 +377,12 @@ class MainActivity : AppCompatActivity() {
         val workDetailsList = workEntries.mapNotNull { (id, workEntry) ->
             val workDate = workEntry.workDate
             val day = workDate.substring(8, 10).toInt()
+            Log.d("WorkDetailsList", "Checking workEntry: ID: $id, Date: $workDate")
 
             //Create a Localdate for the current year, current month, and specific day
-            val workDateLocal = LocalDate.of(currentYear, currentMonthValue, day)
+            val workDateLocal = LocalDate.parse(workEntry.workDate, DateTimeFormatter.ofPattern("yyyy-MM-dd"))
 
-            //Check if the day is valid for the current month and year
-            if (workDateLocal.month == currentMonth.month && workDateLocal.year == currentYear) {
+            Log.d("WorkDetailsList", "Valid workEntry: ID: $id, Date: $workDateLocal")
                 WorkDetails(
                     id = workEntry.id,
                     workDate = workDateLocal.format(DateTimeFormatter.ofPattern("MMM dd, yyyy")),
@@ -386,11 +390,11 @@ class MainActivity : AppCompatActivity() {
                     endTime = workEntry.endTime,
                     breakTime = workEntry.breakTime.toString(),
                     wage = workEntry.netEarnings
-                )
-            } else {
-                null
-            }
+                ).also { Log.d("WorkDetailsList", "Created WorkDetails: ID: $id, Date: $workDateLocal") }
         }
+
+        // Log the size of the work details list
+        Log.d("WorkDetailsList", "WorkDetailsList size: ${workDetailsList.size}")
 
         Column(modifier = Modifier.fillMaxSize()) {
             LazyColumn(
@@ -430,6 +434,8 @@ class MainActivity : AppCompatActivity() {
                                     val workDateKey = workDetail.id
                                     selectedWorkEntry = workEntries[workDateKey]
                                     showDialog = true
+                                    // Log when a work entry is selected for details
+                                    Log.d("WorkDetailsList", "Selected WorkEntry ID: $workDateKey for details")
                                 },
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -440,6 +446,7 @@ class MainActivity : AppCompatActivity() {
 
         //Show Dialog if the state is true
         if (showDialog && selectedWorkEntry != null) {
+            Log.d("WorkDetailsList", "Showing dialog for selected entry ID: ${selectedWorkEntry!!.id}")
             WorkDetailsPopUp(
                 workEntry = selectedWorkEntry!!,
                 onClose = { showDialog = false },
@@ -582,7 +589,7 @@ class MainActivity : AppCompatActivity() {
                 val netEarnings = cursor.getDouble(cursor.getColumnIndexOrThrow("total_earnings"))
 
                 if (workDate == null) {
-                    Log.e("MainActivity", "Invalid work date format: $workDate")
+                    Log.e("MainActivity-loadAllWorkSchedules", "Invalid work date format: $workDate")
                 } else {
                     //Extract month, day, and year from the workDate string
                     if (workDate.length >= 10) {
@@ -608,12 +615,12 @@ class MainActivity : AppCompatActivity() {
                             workDays.add(workDay)
                         }
                     } else {
-                        Log.e("MainActivity", "Invalid work date format: $workDate")
+                        Log.e("MainActivity-loadAllWorkSchedules", "Invalid work date format: $workDate")
                     }
                 }
             } while (cursor.moveToNext())
         } else {
-            Log.d("MainActivity", "No work schedules found.")
+            Log.d("MainActivity-loadAllWorkSchedules", "No work schedules found.")
         }
     }
 
@@ -631,20 +638,20 @@ class MainActivity : AppCompatActivity() {
         }
 
         val hoursWorked = duration.toMinutes() / 60.0
-        Log.d("AddWorKActivity", "Calculated hours worked: $hoursWorked (Start: $startTime, End: $endTime)")
+        Log.d("AddWorKActivity-calculateHoursWorked", "Calculated hours worked: $hoursWorked (Start: $startTime, End: $endTime)")
         return hoursWorked
     }
 
     private suspend fun getWorkDetailsForDate(context: Context, date: String): WorkDetails {
         //Log when function is called
-        Log.d("MainActivity", "getWorkDetailsForDate called for date: $date")
+        Log.d("MainActivity-getWorkDetailsForDate", "getWorkDetailsForDate called for date: $date")
 
         val dbHelper = WorkScheduleDatabaseHelper(context)
         val cursor = dbHelper.getWorkScheduleByDate(date)
 
         //Log whether the cursor is null or not
         if (cursor == null) {
-            Log.e("MainActivity", "Cursor is null. Database query failed for date: $date")
+            Log.e("MainActivity-getWorkDetailsForDate", "Cursor is null. Database query failed for date: $date")
             return WorkDetails(0,"", "", "", "", 0.0)
         }
 
@@ -661,7 +668,7 @@ class MainActivity : AppCompatActivity() {
 
                 //Log the extracted data
                 Log.d(
-                    "MainActivity",
+                    "MainActivity-getWorkDetailsForDate",
                     "Work Date: $workDate, Start time: $startTime, End Time: $endTime, Break Time: $breakTime, Wage: $wage"
                 )
 
@@ -669,11 +676,11 @@ class MainActivity : AppCompatActivity() {
                 return WorkDetails(id, workDate, startTime, endTime, breakTime, wage)
             } catch (e: Exception) {
                 //Log any exceptions encountered while reading the cursor data
-                Log.e("MainActivity", "Error extracting work detail from cursor: ${e.message}")
+                Log.e("MainActivity-getWorkDetailsForDate", "Error extracting work detail from cursor: ${e.message}")
             }
         } else {
             // If no data is found for the date
-            Log.d("MainActivity", "No work details found for date: $date")
+            Log.d("MainActivity-getWorkDetailsForDate", "No work details found for date: $date")
         }
 
         //Close cursor to avoid memory leaks
@@ -690,7 +697,7 @@ class MainActivity : AppCompatActivity() {
         val formattedStartDate = formatDateForQuery(startOfMonth.toString())
         val formattedEndDate = formatDateForQuery(endOfMonth.toString())
 
-        Log.d("MainActivity", "Fetching work details for month: $month/$year between $formattedStartDate and $formattedEndDate")
+        Log.d("MainActivity-fetchWorkEntriesForMonth", "Fetching work details for month: $month/$year between $formattedStartDate and $formattedEndDate")
 
         //Query the database to fetch work times for the entire month
         val cursor = dbHelper.getWorkScheduleBetweenDates(formattedStartDate, formattedEndDate)
@@ -711,30 +718,28 @@ class MainActivity : AppCompatActivity() {
                 val wage = cursor.getDouble(cursor.getColumnIndexOrThrow("total_earnings"))
 
                 //Log or display the work detail
-                Log.d("MainActivity", "Loaded WorkDetail for month: $workDate, $startTime - $endTime, Wage: $wage")
+                Log.d("MainActivity-fetchWorkEntriesForMonth", "Loaded WorkDetail for month: $workDate, $startTime - $endTime, Wage: $wage")
                 val workDetail = WorkEntry(id, workDate, startTime, endTime, breakTime, payType, payRate, overtimeRate, wage)
                 workEntries[id] = workDetail
             } while (cursor.moveToNext())
-            Log.d("MainActivity", "Work times displayed for month: ${workEntries.size} entries")
+            Log.d("MainActivity-fetchWorkEntriesForMonth", "Work times displayed for month: ${workEntries.size} entries")
             cursor.close()
         } else {
-            Log.d("MainActivity", "No work times found for the selected month: $month/$year")
+            Log.d("MainActivity-fetchWorkEntriesForMonth", "No work times found for the selected month: $month/$year")
             cursor?.close()
         }
         return workEntries
     }
 
     private fun displayWorkTimesForSelectedDates(start: String, end: String, workEntries: MutableMap<Long, WorkEntry>) {
-        Log.d("MainActivity", "Fetching work details between $start and $end")
+        Log.d("MainActivity-displayWorkTimesForSelectedDates", "Fetching work details between $start and $end")
 
         val formattedStartDate = formatDateForQuery(start)
         val formattedEndDate = formatDateForQuery(end)
-
+        Log.d("MainActivity-displayWorkTimesForSelectedDates", "Formatted date range for query: $formattedStartDate to $formattedEndDate")
 
         //Query the database to fetch work times for each day between start and end
         val cursor = dbHelper.getWorkScheduleBetweenDates(formattedStartDate ,formattedEndDate)
-
-        val workDetailsList = mutableListOf<WorkDetails>()
 
         //Iterate through the cursor to get work times and display them
         if (cursor != null && cursor.moveToFirst()) {
@@ -751,17 +756,17 @@ class MainActivity : AppCompatActivity() {
                 val netEarnings = cursor.getDouble(cursor.getColumnIndexOrThrow("total_earnings"))
 
                 //Display or append the work date and times to UI
-                Log.d("MainActivity", "Loaded WorkDetail for range: $workDate, $startTime - $endTime, $breakTime, $payType, $payRate, $overtimeRate, Net Earnings: $netEarnings")
+                Log.d("MainActivity-displayWorkTimesForSelectedDates", "Loaded WorkDetail for range: $workDate, $startTime - $endTime, $breakTime, $payType, $payRate, $overtimeRate, Net Earnings: $netEarnings")
                 val workEntry = WorkEntry(id, workDate, startTime, endTime, breakTime, payType, payRate, overtimeRate, netEarnings)
                 fetchedEntries[id] = workEntry
             } while (cursor.moveToNext())
             workEntries.clear()
             workEntries.putAll(fetchedEntries)
 
-            Log.d("MainActivity", "Work times displayed, count: ${workEntries.size}")
+            Log.d("MainActivity-displayWorkTimesForSelectedDates", "Work times displayed, count: ${workEntries.size}")
             cursor.close()
         } else {
-            Log.d("MainActivity", "No work times found for the selected date range.")
+            Log.d("MainActivity-displayWorkTimesForSelectedDates", "No work times found for the selected date range.")
             workEntries.clear()
         }
 
