@@ -52,6 +52,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -266,7 +267,7 @@ class MainActivity : AppCompatActivity() {
                     } else if (secondSelectedDate == null) {
                         secondSelectedDate = "$monthValue/$day/$yearValue"
                         Toast.makeText(context, "Second date selected: $secondSelectedDate", Toast.LENGTH_SHORT).show()
-                        displayWorkTimesForSelectedDates(firstSelectedDate!!, secondSelectedDate!!)
+                        displayWorkTimesForSelectedDates(firstSelectedDate!!, secondSelectedDate!!, workEntries)
                         isSelectingRange = false
                     }
                 } else {
@@ -723,11 +724,12 @@ class MainActivity : AppCompatActivity() {
         return workEntries
     }
 
-    private fun displayWorkTimesForSelectedDates(start: String, end: String) {
+    private fun displayWorkTimesForSelectedDates(start: String, end: String, workEntries: MutableMap<Long, WorkEntry>) {
         Log.d("MainActivity", "Fetching work details between $start and $end")
 
         val formattedStartDate = formatDateForQuery(start)
         val formattedEndDate = formatDateForQuery(end)
+
 
         //Query the database to fetch work times for each day between start and end
         val cursor = dbHelper.getWorkScheduleBetweenDates(formattedStartDate ,formattedEndDate)
@@ -736,25 +738,31 @@ class MainActivity : AppCompatActivity() {
 
         //Iterate through the cursor to get work times and display them
         if (cursor != null && cursor.moveToFirst()) {
+            val fetchedEntries = mutableStateMapOf<Long, WorkEntry>()
             do {
                 val id = cursor.getLong(cursor.getColumnIndexOrThrow("id"))
                 val workDate = cursor.getString(cursor.getColumnIndexOrThrow("work_date"))
                 val startTime = cursor.getString(cursor.getColumnIndexOrThrow("start_time"))
                 val endTime = cursor.getString(cursor.getColumnIndexOrThrow("end_time"))
-                val breakTime = cursor.getInt(cursor.getColumnIndexOrThrow("break_time_minutes")).toString()
-                val wage = cursor.getDouble(cursor.getColumnIndexOrThrow("total_earnings"))
+                val breakTime = cursor.getInt(cursor.getColumnIndexOrThrow("break_time_minutes"))
+                val payType = cursor.getString(cursor.getColumnIndexOrThrow("pay_type"))
+                val payRate = cursor.getDouble(cursor.getColumnIndexOrThrow("pay_rate"))
+                val overtimeRate = cursor.getDouble(cursor.getColumnIndexOrThrow("overtime_rate"))
+                val netEarnings = cursor.getDouble(cursor.getColumnIndexOrThrow("total_earnings"))
 
                 //Display or append the work date and times to UI
-                Log.d("MainActivity", "Loaded WorkDetail for range: $workDate, $startTime - $endTime, Wage: $wage")
-                val workDetail = WorkDetails(id, workDate, startTime, endTime, breakTime, wage)
-                workDetailsList.add(workDetail)
+                Log.d("MainActivity", "Loaded WorkDetail for range: $workDate, $startTime - $endTime, $breakTime, $payType, $payRate, $overtimeRate, Net Earnings: $netEarnings")
+                val workEntry = WorkEntry(id, workDate, startTime, endTime, breakTime, payType, payRate, overtimeRate, netEarnings)
+                fetchedEntries[id] = workEntry
             } while (cursor.moveToNext())
-            Log.d("MainActivity", "Work times displayed, count: ${workDetailsList.size}")
-//            updateUIWithWorkDetails(workDetailsList)
+            workEntries.clear()
+            workEntries.putAll(fetchedEntries)
+
+            Log.d("MainActivity", "Work times displayed, count: ${workEntries.size}")
             cursor.close()
         } else {
             Log.d("MainActivity", "No work times found for the selected date range.")
-            workDetailsList.clear()
+            workEntries.clear()
         }
 
     }
