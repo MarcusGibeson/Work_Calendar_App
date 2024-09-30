@@ -18,6 +18,7 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -394,6 +395,10 @@ class MainActivity : AppCompatActivity() {
         // Log the size of the work details list
         Log.d("WorkDetailsList", "WorkDetailsList size: ${workDetailsList.size}")
 
+        //Calculate total wage
+        val totalWage = workDetailsList.sumOf {it.wage}
+
+
         Column(modifier = Modifier.fillMaxSize()) {
             LazyColumn(
                 modifier = Modifier
@@ -440,6 +445,35 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
             }
+
+            Row (
+                modifier = Modifier
+                    .align(Alignment.End)
+                    .padding(16.dp)
+                    .border(
+                        width = 2.dp,
+                        color = Color.Gray,
+                        shape = RoundedCornerShape(8.dp)
+                    )
+                    .padding(8.dp)
+            ){
+
+                Text(
+                    text = "Total Earned: ",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = Color.Black
+                )
+
+                //Display total wage amount
+                Text(
+                    text = "$${String.format("%.2f", totalWage)}",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = Color.Red,
+                )
+            }
+
+
+
         }
 
         //Show Dialog if the state is true

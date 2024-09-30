@@ -7,6 +7,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -55,17 +56,24 @@ fun WorkCalendar(currentMonth: LocalDate, daysInMonth: Int, workDays: List<Int>,
                         val day = (week * 7 + dayOfWeek) - firstDayOfMonth + 1
 
                         if (day in 1..daysInMonth) {
-                            val borderColor =  if (day == LocalDate.now().dayOfMonth) Color(outlineColor) else Color.Black
+                            val currentDayColor =  if (day == currentDay) Color(outlineColor) else Color.Transparent
+                            val borderColor = Color.Black
                             val backgroundColor = when {
                                 workDays.contains(day) -> Color(workDay1Color)//WorkDays
                                 //work2Days.contains(day) -> Color(workDay2Color)
                                 //work3Days.contains(day) -> Color(workDay3Color)
-                                else -> Color.Transparent
+                                else -> Color.White
                             }
                             Box(
                                 modifier = Modifier
                                     .size(48.dp)
-                                    .border(BorderStroke(1.dp, borderColor))
+                                    .border(
+                                        BorderStroke(8.dp, currentDayColor),
+                                        shape = CircleShape
+                                    )
+                                    .border(
+                                        BorderStroke(1.dp, borderColor),
+                                    )
                                     .background(backgroundColor)
                                     .clickable { onDaySelected(day) },
                                 contentAlignment = Alignment.Center,
@@ -73,7 +81,7 @@ fun WorkCalendar(currentMonth: LocalDate, daysInMonth: Int, workDays: List<Int>,
                                 ) {
                                 Text(
                                     text = day.toString(),
-                                    style = MaterialTheme.typography.bodyMedium,
+                                    style = MaterialTheme.typography.bodyLarge,
                                     color = Color.Black
                                 )
                             }
