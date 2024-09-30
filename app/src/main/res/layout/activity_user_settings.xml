@@ -6,28 +6,10 @@
     android:orientation="vertical"
     android:padding="16dp">
 
-    <Button
-        android:id="@+id/button_work_day_1_color"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Change first job color" />
 
-    <Button
-        android:id="@+id/button_work_day_2_color"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Change second job color" />
-
-    <Button
-        android:id="@+id/button_work_day_3_color"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Change third job color" />
-
-    <Button
-        android:id="@+id/button_outline_color"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Change current day outline color" />
+    <androidx.compose.ui.platform.ComposeView
+        android:id="@+id/compose_view"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
 
 </LinearLayout>

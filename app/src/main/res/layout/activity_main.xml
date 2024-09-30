@@ -1,101 +1,32 @@
-<?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="20dp">
+    tools:context=".MainActivity">
 
-    <!--Calendar View-->
-    <CalendarView
-        android:id="@+id/calendarView"
-        android:layout_width="match_parent"
-        android:layout_height="307dp"
-        android:dateTextAppearance="?android:attr/textAppearanceLarge" />
-
-    <!--Button to select multiple dates-->
-    <Button
-        android:id="@+id/select_dates_button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Select dates" />
-
-    <!--Table header for RecyclerView-->
-    <LinearLayout
+    <!-- Toolbar -->
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@android:color/background_dark"
-        android:orientation="horizontal"
-        android:padding="8dp">
+        android:visibility="visible"
+        android:background="?attr/colorPrimary"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:title="Your App Title" />
 
-        <!--Work Date Header-->
-        <TextView
-            android:id="@+id/header_work_date"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:text="Work Date"
-            android:textColor="@android:color/white"
-            android:textStyle="bold" />
-
-        <!--Start Time Header-->
-        <TextView
-            android:id="@+id/header_start_time"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:text="Start TIme"
-            android:textColor="@android:color/white"
-            android:textStyle="bold" />
-
-        <!--End Time Header-->
-        <TextView
-            android:id="@+id/header_end_time"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:text="End TIme"
-            android:textColor="@android:color/white"
-            android:textStyle="bold" />
-
-        <!--Wage Header-->
-        <TextView
-            android:id="@+id/header_wage"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:text="Wage"
-            android:textColor="@android:color/white"
-            android:textStyle="bold" />
-
-    </LinearLayout>
-
-    <!--RecyclerView for displaying work details-->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/work_details_recycler_view"
+    <!-- Other views or content -->
+    <FrameLayout
+        android:id="@+id/container"
         android:layout_width="match_parent"
-        android:layout_height="310dp"
-        android:layout_marginTop="0dp"
-        android:layout_weight="1"
-        android:background="#7EE1D5"
-        android:scrollbars="vertical" />
-
-    <!--Button to open Add Work Schedule Form-->
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/addWorkFab"
-        android:layout_width="wrap_content"
-        android:layout_height="67dp"
-        android:layout_gravity="end"
-        android:layout_marginTop="16dp"
-        android:backgroundTint="@color/colorPrimary"
-        android:contentDescription="Add work schedule"
-        app:maxImageSize="50dp"
-        app:srcCompat="@drawable/add_activity_plus"
-        app:tint="@android:color/white" />
+        android:layout_height="match_parent"
+        app:layout_constraintTop_toBottomOf="@id/toolbar"
+        app:layout_constraintBottom_toBottomOf="parent" />
 
 
-</LinearLayout>
+
+
+</androidx.constraintlayout.widget.ConstraintLayout>
