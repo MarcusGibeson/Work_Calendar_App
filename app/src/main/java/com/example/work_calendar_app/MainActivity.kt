@@ -7,6 +7,8 @@ import android.content.Intent
 import android.graphics.Rect
 import android.os.Bundle
 import android.util.Log
+import android.view.Menu
+import android.view.MenuItem
 import android.view.View
 import androidx.compose.material3.Button
 import android.widget.CalendarView
@@ -79,7 +81,6 @@ class MainActivity : AppCompatActivity() {
     var entryEdited by mutableStateOf(false)
     private var workEntriesChanged by mutableStateOf(0)
 
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         addWorkActivityLauncher = registerForActivityResult(
@@ -113,7 +114,22 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.menu_main, menu)
+        return true
+    }
 
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.action_settings -> {
+                //Start the UserSettingsActivity when the settings icon is clicked
+                val intent = Intent(this, UserSettingsActivity::class.java)
+                startActivity(intent)
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
+    }
 
     fun refreshWorkEntries() {
         workEntriesChanged++
@@ -148,9 +164,6 @@ class MainActivity : AppCompatActivity() {
 
         //Dummy data for workDays and workEntries
         val workDays = remember { mutableStateListOf<Int>() }
-
-
-
 
         //Initial load
         LaunchedEffect(Unit) {
@@ -190,12 +203,11 @@ class MainActivity : AppCompatActivity() {
             onEntryEditedChange(false)
         }
 
-
         //Main Layout of Calendar
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(8.dp)
+                .padding(8.dp, bottom = 0.dp)
         ) {
 
             //Button to switch modes
@@ -276,14 +288,6 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
-
-            Column {
-                //Add Calendar grid
-                for (i in 1..daysInMonth) {
-                    //Logic to display each day
-                }
-            }
-
             //Add work schedule button
             Button(
                 onClick = {
@@ -291,12 +295,10 @@ class MainActivity : AppCompatActivity() {
                     addWorkActivityLauncher.launch(intent)
                 },
                 modifier = Modifier
-                    .padding(start = 200.dp, end = 16.dp)
+                    .padding(start = 0.dp, end = 16.dp)
             ){
                 Text("Add Work Entry")
             }
-
-
 
             //Composable view for Work Details
             Text(text = "  Work Date  |  Work Time  ", modifier = Modifier.padding(vertical = 0.dp))
@@ -313,11 +315,7 @@ class MainActivity : AppCompatActivity() {
                 ) { showPopup = false }
             }
         }
-
-
-
     }
-
 
     @Composable
     fun WorkDetailsList(workEntries: MutableMap<Long, WorkEntry>, currentMonth: LocalDate) {
@@ -522,8 +520,7 @@ class MainActivity : AppCompatActivity() {
                         //Non-editable texts
                         Text(text = "Start Time: $startTime")
                         Text(text = "End Time: $endTime")
-                        Text(text = "Start Time: $breakTime")
-                        Text(text = "Break Time: $startTime")
+                        Text(text = "Break Time: $breakTime minutes")
                         Text(text = "Pay Type: $payType")
                         Text(text = "Pay Rate: $payRate")
                         Text(text = "Overtime Rate: $overtimeRate")

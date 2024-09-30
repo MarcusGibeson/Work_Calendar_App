@@ -1,5 +1,6 @@
 package com.example.work_calendar_app.calendar
 
+import android.content.Context
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -14,13 +15,26 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import java.time.LocalDate
 
 @Composable
 fun WorkCalendar(currentMonth: LocalDate, daysInMonth: Int, workDays: List<Int>, onDaySelected: (Int) -> Unit) {
+    val context = LocalContext.current
+    val sharedPreferences = context.getSharedPreferences("user_preferences", Context.MODE_PRIVATE)
+
+    //Retrieve colors from preferences, with default fallback values
+    val workDay1Color = sharedPreferences.getInt("workDay1Color", Color.Green.toArgb())
+    val workDay2Color = sharedPreferences.getInt("workDay2Color", Color.Magenta.toArgb())
+    val workDay3Color = sharedPreferences.getInt("workDay3Color", Color.Yellow.toArgb())
+    val outlineColor = sharedPreferences.getInt("outlineColor", Color.Cyan.toArgb())
 
     val firstDayOfMonth = (currentMonth.withDayOfMonth(1).dayOfWeek.value % 7)
+    val currentDay = if (currentMonth.month == LocalDate.now().month && currentMonth.year == LocalDate.now().year) {
+        LocalDate.now().dayOfMonth
+    } else null
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -41,8 +55,13 @@ fun WorkCalendar(currentMonth: LocalDate, daysInMonth: Int, workDays: List<Int>,
                         val day = (week * 7 + dayOfWeek) - firstDayOfMonth + 1
 
                         if (day in 1..daysInMonth) {
-                            val borderColor =  Color.Black
-                            val backgroundColor = if (workDays.contains(day)) Color.Green else Color.Transparent
+                            val borderColor =  if (day == LocalDate.now().dayOfMonth) Color(outlineColor) else Color.Black
+                            val backgroundColor = when {
+                                workDays.contains(day) -> Color(workDay1Color)//WorkDays
+                                //work2Days.contains(day) -> Color(workDay2Color)
+                                //work3Days.contains(day) -> Color(workDay3Color)
+                                else -> Color.Transparent
+                            }
                             Box(
                                 modifier = Modifier
                                     .size(48.dp)
