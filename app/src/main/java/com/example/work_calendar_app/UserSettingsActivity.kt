@@ -1,7 +1,9 @@
 package com.example.work_calendar_app
 
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.Button
 import androidx.activity.compose.setContent
@@ -72,17 +74,6 @@ class UserSettingsActivity : AppCompatActivity() {
         //Set up compose View for displaying color boxes
         val composeView = findViewById<ComposeView>(R.id.compose_view)
         composeView.setContent {
-            ColorPickerDisplay(
-                workDay1Color,
-//                workDay2Color,
-//                workDay3Color,
-                outlineColor,
-                onWorkDay1ColorSelected = { openColorPicker { WORK_DAY_1_COLOR_KEY } },
-//                onWorkDay2ColorSelected = { openColorPicker { WORK_DAY_2_COLOR_KEY } },
-//                onWorkDay3ColorSelected = { openColorPicker { WORK_DAY_3_COLOR_KEY } },
-                onOutlineColorSelected = { openColorPicker { OUTLINE_COLOR_KEY} }
-            )
-
             if (showColorPicker) {
                 ColorPickerDialog(
                     onDismissRequest = { showColorPicker = false },
@@ -94,16 +85,31 @@ class UserSettingsActivity : AppCompatActivity() {
                     colorKey = "color_key"
                 )
             } else {
-                ColorPickerDisplay(
-                    workDay1Color,
+                Column(modifier = Modifier.padding(16.dp)) {
+                    ColorPickerDisplay(
+                        workDay1Color,
 //                    workDay2Color,
 //                    workDay3Color,
-                    outlineColor,
-                    onWorkDay1ColorSelected = { color -> openColorPicker { workDay1Color = color } },
+                        outlineColor,
+                        onWorkDay1ColorSelected = { color -> openColorPicker(WORK_DAY_1_COLOR_KEY) { workDay1Color = color } },
 //                    onWorkDay2ColorSelected = { color -> openColorPicker { workDay2Color = color } },
 //                    onWorkDay3ColorSelected = { color -> openColorPicker { workDay3Color = color } },
-                    onOutlineColorSelected = { color -> openColorPicker { outlineColor = color }}
-                )
+                        onOutlineColorSelected = { color -> openColorPicker(OUTLINE_COLOR_KEY) { outlineColor = color }}
+                    )
+                    Spacer (modifier = Modifier.height(16.dp))
+
+                    //Add finished button
+                    Button(
+                        onClick = {
+                            val intent = Intent(this@UserSettingsActivity, MainActivity::class.java)
+                            startActivity(intent)
+                            finish()
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Okay")
+                    }
+                }
             }
         }
     }
@@ -115,14 +121,21 @@ class UserSettingsActivity : AppCompatActivity() {
 //        workDay3Color = Color(sharedPreferences.getInt("workDay3Color", Color.Red.toArgb()))
         outlineColor = Color(sharedPreferences.getInt("outlineColor", Color.Blue.toArgb()))
     }
-    private fun openColorPicker(onColorSelected: (Color) -> Unit) {
+    private fun openColorPicker(key: String, onColorSelected: (Color) -> Unit) {
+        colorKey = key
         selectedColor = onColorSelected
         showColorPicker = true
     }
 
     private fun saveColorPreference(key: String, color: Int) {
         val sharedPreferences = getSharedPreferences("user_preferences", Context.MODE_PRIVATE)
-        sharedPreferences.edit().putInt(key, color).apply()
+        val editor = sharedPreferences.edit()
+        editor.putInt(key, color)
+        editor.apply()
+        Log.d("UserSettings", "Saved $color for key $key")
+
+        //refresh color preferences
+        loadColorPreferences()
     }
 
     @Composable
@@ -140,11 +153,13 @@ class UserSettingsActivity : AppCompatActivity() {
             //Work Day 1
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Button(onClick = {
-                    openColorPicker { color ->
+                    openColorPicker(WORK_DAY_1_COLOR_KEY) { color ->
                         onWorkDay1ColorSelected(color)
                         saveColorPreference(WORK_DAY_1_COLOR_KEY, color.toArgb())
                     }
-                }) {
+                },
+                    modifier = Modifier.weight(0.9f)
+                ) {
                     Text("Change first job color")
                 }
                 Spacer(modifier = Modifier.width(16.dp))
@@ -152,14 +167,14 @@ class UserSettingsActivity : AppCompatActivity() {
                     modifier = Modifier
                         .size(50.dp)
                         .background(workDay1Color, RoundedCornerShape(16.dp))
-                        .weight(1f, fill = false)
+                        .weight(0.2f)
                 )
             }
             Spacer(modifier = Modifier.height(8.dp))
 //            //Work Day 2
 //            Row(verticalAlignment = Alignment.CenterVertically) {
 //                Button(onClick = {
-//                    openColorPicker { color ->
+//                    openColorPicker(WORK_DAY_2_COLOR_KEY) { color ->
 //                        onWorkDay2ColorSelected(color)
 //                        saveColorPreference(WORK_DAY_2_COLOR_KEY, color.toArgb())
 //                    }
@@ -179,7 +194,7 @@ class UserSettingsActivity : AppCompatActivity() {
 //            //Work Day 3
 //            Row(verticalAlignment = Alignment.CenterVertically) {
 //                Button(onClick = {
-//                    openColorPicker { color ->
+//                    openColorPicker(WORK_DAY_3_COLOR_KEY) { color ->
 //                        onWorkDay3ColorSelected(color)
 //                        saveColorPreference(WORK_DAY_3_COLOR_KEY, color.toArgb())
 //                    }
@@ -199,11 +214,13 @@ class UserSettingsActivity : AppCompatActivity() {
             //Current Day outline
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Button(onClick = {
-                    openColorPicker { color ->
+                    openColorPicker(OUTLINE_COLOR_KEY) { color ->
                         onOutlineColorSelected(color)
                         saveColorPreference(OUTLINE_COLOR_KEY, color.toArgb())
                     }
-                }) {
+                },
+                    modifier = Modifier.weight(0.5f)
+                ) {
                     Text("Change current day outline color")
                 }
                 Spacer(modifier = Modifier.width(16.dp))
@@ -211,7 +228,7 @@ class UserSettingsActivity : AppCompatActivity() {
                     modifier = Modifier
                         .size(50.dp)
                         .background(outlineColor, RoundedCornerShape(16.dp))
-                        .weight(1f, fill = false)
+                        .weight(0.1f)
                 )
             }
         }

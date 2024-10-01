@@ -22,6 +22,7 @@ import androidx.appcompat.widget.Toolbar
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -62,6 +63,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -233,117 +236,162 @@ class MainActivity : AppCompatActivity() {
                 onEntryEditedChange(false)
             }
 
-            //Main Layout of Calendar
-            Column(
+            //Box around calendar to detect swipe gestures
+            val screenWidth = LocalConfiguration.current.screenWidthDp
+            var accumulatedDrag = 0f
+            val swipeThreshold = screenWidth * 1f
+
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(8.dp, bottom = 0.dp)
-            ) {
+                    .pointerInput(Unit) {
+                        detectHorizontalDragGestures(
+                            onHorizontalDrag = { change, dragAmount  ->
+                                accumulatedDrag += dragAmount //Accumulate drag distance
 
-                //Button to switch modes
-                Button(onClick = {
-                    isSelectingRange = !isSelectingRange
-                    firstSelectedDate = null
-                    secondSelectedDate = null
-                    selectedDay = -1
-                }) {
-                    Text(if (isSelectingRange) "Switch to Single Date Mode" else "Switch to Date Range Mode")
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-                //Row for previous and next buttons with Month title in between
-                Row(
-                    modifier = Modifier
-                        .padding(bottom = 16.dp)
-                        .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Button(onClick = {
-                        currentMonth = currentMonth.minusMonths(1)
-                        onMonthChanged(currentMonth.month)
-                    }) {
-                        Text("Previous")
-                    }
-                    Text(
-                        text = currentMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
-                        modifier = Modifier.padding(
-                            PaddingValues(start = 16.dp, end = 16.dp, top = 10.dp)),
-                        fontSize = 16.sp
-                    )
-                    Button(onClick = {
-                        currentMonth = currentMonth.plusMonths(1)
-                        onMonthChanged(currentMonth.month)
-                    }) {
-                        Text("Next")
-                    }
-                }
-
-                //Row for weekday headers
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp),
-                    horizontalArrangement = Arrangement.Start
-                ) {
-                    Spacer(modifier = Modifier.weight(0.3f))
-                    val daysOfWeek = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
-                    for (day in daysOfWeek) {
-                        Text (
-                            text = day,
-                            modifier = Modifier
-                                .weight(1f)
-                                .padding(horizontal = 2.dp),
-                            style = MaterialTheme.typography.bodyMedium
+                                //Check if the accumulated drag surpasses the swipe threshold
+                                if (accumulatedDrag > swipeThreshold) {
+                                    //Swipe right (previous month)
+                                    accumulatedDrag = 0f
+                                    currentMonth = currentMonth.minusMonths(1)
+                                    onMonthChanged(currentMonth.month)
+                                } else if (accumulatedDrag < -swipeThreshold) {
+                                    //Swipe left (next month)
+                                    accumulatedDrag = 0f
+                                    currentMonth = currentMonth.plusMonths(1)
+                                    onMonthChanged(currentMonth.month)
+                                }
+                            },
+                            onDragEnd = {
+                                //Reset the accumulated drag when the gesture ends
+                                accumulatedDrag = 0f
+                            }
                         )
                     }
-                }
-
-                //Custom Work Calendar
-                WorkCalendar(currentMonth, daysInMonth = daysInMonth, workDays = workDays.toList()) { day ->
-                    if (isSelectingRange) {
-                        val monthValue = currentMonth.monthValue
-                        val yearValue = currentMonth.year
-
-                        if (firstSelectedDate == null) {
-                            firstSelectedDate = "$monthValue/$day/$yearValue"
-                            Toast.makeText(context, "First date selected: $firstSelectedDate", Toast.LENGTH_SHORT).show()
-                        } else if (secondSelectedDate == null) {
-                            secondSelectedDate = "$monthValue/$day/$yearValue"
-                            Toast.makeText(context, "Second date selected: $secondSelectedDate", Toast.LENGTH_SHORT).show()
-                            displayWorkTimesForSelectedDates(firstSelectedDate!!, secondSelectedDate!!, workEntries)
-                            isSelectingRange = false
-                        }
-                    } else {
-                        selectedDay = day
-                        showPopup = true
-                    }
-                }
-
-                //Add work schedule button
-                Button(
-                    onClick = {
-                        val intent = Intent(this@MainActivity, AddWorkActivity::class.java)
-                        addWorkActivityLauncher.launch(intent)
-                    },
+                ) {
+                //Main Layout of Calendar
+                Column(
                     modifier = Modifier
-                        .padding(start = 0.dp, end = 16.dp)
-                ){
-                    Text("Add Work Entry")
-                }
+                        .fillMaxSize()
+                        .padding(8.dp, bottom = 0.dp)
+                ) {
+                    Spacer(modifier = Modifier.height(60.dp))
 
-                //Composable view for Work Details
-                Text(text = "  Work Date  |  Work Time  ", modifier = Modifier.padding(vertical = 0.dp))
-                WorkDetailsList(workEntries, currentMonth)
+                    //Row for previous and next buttons with Month title in between
+                    Row(
+                        modifier = Modifier
+                            .padding(bottom = 16.dp)
+                            .fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Button(onClick = {
+                            currentMonth = currentMonth.minusMonths(1)
+                            onMonthChanged(currentMonth.month)
+                        }) {
+                            Text("Previous")
+                        }
+                        Text(
+                            text = currentMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
+                            modifier = Modifier.padding(
+                                PaddingValues(start = 16.dp, end = 16.dp, top = 10.dp)),
+                            fontSize = 16.sp
+                        )
+                        Button(onClick = {
+                            currentMonth = currentMonth.plusMonths(1)
+                            onMonthChanged(currentMonth.month)
+                        }) {
+                            Text("Next")
+                        }
+                    }
 
-                //Popup for displaying details
-                if (showPopup && selectedDay != -1 && !isSelectingRange) {
-                    DayDetailsPopup(
-                        selectedDay = selectedDay,
-                        startTime = workDetailsForPopup.startTime,
-                        endTime = workDetailsForPopup.endTime,
-                        breakTime = workDetailsForPopup.breakTime,
-                        wage = workDetailsForPopup.wage
-                    ) { showPopup = false }
+                    //Row for weekday headers
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        horizontalArrangement = Arrangement.Start
+                    ) {
+                        Spacer(modifier = Modifier.weight(0.3f))
+                        val daysOfWeek = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
+                        for (day in daysOfWeek) {
+                            Text (
+                                text = day,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(horizontal = 2.dp),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                    }
+
+                    //Custom Work Calendar
+                    WorkCalendar(currentMonth, daysInMonth = daysInMonth, workDays = workDays.toList()) { day ->
+                        if (isSelectingRange) {
+                            val monthValue = currentMonth.monthValue
+                            val yearValue = currentMonth.year
+
+                            if (firstSelectedDate == null) {
+                                firstSelectedDate = "$monthValue/$day/$yearValue"
+                                Toast.makeText(context, "First date selected: $firstSelectedDate", Toast.LENGTH_SHORT).show()
+                            } else if (secondSelectedDate == null) {
+                                secondSelectedDate = "$monthValue/$day/$yearValue"
+                                Toast.makeText(context, "Second date selected: $secondSelectedDate", Toast.LENGTH_SHORT).show()
+                                displayWorkTimesForSelectedDates(firstSelectedDate!!, secondSelectedDate!!, workEntries)
+                                isSelectingRange = false
+                            }
+                        } else {
+                            selectedDay = day
+                            showPopup = true
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier
+                            .padding(bottom = 16.dp)
+                            .fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        //Button to switch modes
+                        Button(onClick = {
+                            isSelectingRange = !isSelectingRange
+                            firstSelectedDate = null
+                            secondSelectedDate = null
+                            selectedDay = -1
+                        }) {
+                            Text(if (isSelectingRange) "Switch to Single Date Mode" else "Switch to Date Range Mode")
+                        }
+
+                        Spacer(modifier = Modifier.width(16.dp))
+
+                        //Add work schedule button
+                        Button(
+                            onClick = {
+                                val intent = Intent(this@MainActivity, AddWorkActivity::class.java)
+                                addWorkActivityLauncher.launch(intent)
+                            },
+                            modifier = Modifier
+                                .padding(start = 0.dp, end = 16.dp)
+                        ){
+                            Text("Add Work Entry")
+                        }
+                    }
+
+
+                    //Composable view for Work Details
+                    Text(text = "  Work Date  |  Work Time  ", modifier = Modifier.padding(vertical = 0.dp))
+                    WorkDetailsList(workEntries, currentMonth)
+
+                    //Popup for displaying details
+                    if (showPopup && selectedDay != -1 && !isSelectingRange) {
+                        DayDetailsPopup(
+                            selectedDay = selectedDay,
+                            startTime = workDetailsForPopup.startTime,
+                            endTime = workDetailsForPopup.endTime,
+                            breakTime = workDetailsForPopup.breakTime,
+                            wage = workDetailsForPopup.wage
+                        ) { showPopup = false }
+                    }
                 }
             }
         }
