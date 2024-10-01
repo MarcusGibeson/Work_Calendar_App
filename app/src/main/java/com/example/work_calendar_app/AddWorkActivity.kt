@@ -17,6 +17,10 @@ import android.util.Log
 import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.Button
+import androidx.compose.material3.Text
+import androidx.compose.ui.Modifier
 
 class AddWorkActivity : AppCompatActivity() {
 
@@ -37,6 +41,7 @@ class AddWorkActivity : AppCompatActivity() {
     private lateinit var overtimePayEditText: EditText
     private lateinit var btnSave: Button
     private lateinit var btnSaveSchedule: Button
+    private lateinit var btnFinish: Button
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -64,6 +69,8 @@ class AddWorkActivity : AppCompatActivity() {
         btnSave = findViewById(R.id.btnSave)
         btnSaveSchedule = findViewById(R.id.saveScheduleButton)
         Log.d("AddWorkActivity", "Views initialized")
+
+        btnFinish = findViewById(R.id.btnFinish)
 
         //Load saved schedules into the spinner
         loadSavedSchedulesIntoSpinner()
@@ -172,7 +179,10 @@ class AddWorkActivity : AppCompatActivity() {
             dbHelper.insertSavedSchedule(scheduleName, startTime, endTime, breakTime, payType, hourlyRate, overtimePay)
 
             Toast.makeText(this, "Schedule saved as $scheduleName", Toast.LENGTH_SHORT).show()
+        }
 
+        btnFinish.setOnClickListener {
+            finish()
         }
     }
 

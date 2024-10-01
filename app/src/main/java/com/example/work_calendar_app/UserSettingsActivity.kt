@@ -101,8 +101,6 @@ class UserSettingsActivity : AppCompatActivity() {
                     //Add finished button
                     Button(
                         onClick = {
-                            val intent = Intent(this@UserSettingsActivity, MainActivity::class.java)
-                            startActivity(intent)
                             finish()
                         },
                         modifier = Modifier.fillMaxWidth()
