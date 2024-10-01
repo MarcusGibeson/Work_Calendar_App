@@ -102,20 +102,23 @@
         android:layout_height="wrap_content"
         android:layout_width="wrap_content"
         />
+
     <EditText
         android:id="@+id/overtimePay"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="Overtime Pay"
-        android:inputType="numberDecimal"
-        />
+        android:inputType="numberDecimal" />
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="209dp"
         android:dividerPadding="20dp"
         android:orientation="horizontal">
         <!--    Save Button-->
+
+        <!--    Save Schedule Button-->
+
         <Button
             android:id="@+id/btnSave"
             android:layout_width="wrap_content"
@@ -123,7 +126,6 @@
             android:layout_marginRight="30dp"
             android:text="Submit new date" />
 
-        <!--    Save Schedule Button-->
         <Button
             android:id="@+id/saveScheduleButton"
             android:layout_width="match_parent"
