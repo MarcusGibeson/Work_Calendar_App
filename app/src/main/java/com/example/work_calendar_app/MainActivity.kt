@@ -36,6 +36,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -52,6 +54,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -62,11 +65,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -93,6 +99,11 @@ class MainActivity : AppCompatActivity() {
     private lateinit var addWorkActivityLauncher: ActivityResultLauncher<Intent>
     var entryEdited by mutableStateOf(false)
     private var workEntriesChanged by mutableStateOf(0)
+
+    private var isSelectingRange by mutableStateOf(false)
+    private var firstSelectedDate: String? = null
+    private var secondSelectedDate: String? = null
+    private var selectedDay by mutableStateOf(-1)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -148,12 +159,51 @@ class MainActivity : AppCompatActivity() {
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("Work Calendar") },
+                    title = {
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Spacer(Modifier.weight(1f))
+                            Text("Work Calendar")
+                            Spacer(Modifier.weight(1f))
+                        }
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = {
+                            isSelectingRange = !isSelectingRange
+                            firstSelectedDate = null
+                            secondSelectedDate = null
+                            selectedDay = -1
+                        }) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(start = 4.dp)
+                            ) {
+                                Icon(
+                                    painter = painterResource(id = if (isSelectingRange) R.drawable.ic_selecting_range_mode else R.drawable.ic_single_day_mode),
+                                    contentDescription = "Toggle mode"
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = if (isSelectingRange) "Select Range" else "Single",
+                                    fontSize = 12.sp,
+                                    color = Color.White,
+                                    maxLines = 1,
+                                    modifier = Modifier.wrapContentWidth()
+                                )
+                            }
+
+                        }
+                    },
                     actions = {
                         IconButton(onClick = { onSettingsClicked() }) {
                             Icon(Icons.Default.Settings, contentDescription = "Settings")
                         }
-                    }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color(0xFF0666FF)
+                    )
                 )
             },
             content = {innerPadding ->
@@ -176,13 +226,7 @@ class MainActivity : AppCompatActivity() {
     fun CalendarContent(modifier: Modifier, workEntries: MutableMap<Long, WorkEntry>, onMonthChanged: (Month) -> Unit, entryEdited: Boolean, onEntryEditedChange: (Boolean) -> Unit, onWorkEntriesChanged: () -> Unit) {
         Box(modifier = Modifier) {
             var currentMonth by remember { mutableStateOf(LocalDate.now()) }
-            var selectedDay by remember { mutableStateOf(-1) }
             var showPopup by remember { mutableStateOf(false) }
-
-            //Mode to capture dates
-            var isSelectingRange by remember { mutableStateOf(false) }
-            var firstSelectedDate by remember { mutableStateOf<String?> (null) }
-            var secondSelectedDate by remember { mutableStateOf<String?>(null) }
 
             //Store fetched work details for the selected day
             var workDetailsForPopup by remember { mutableStateOf(WorkDetails(0,"","","","",0.0)) }
@@ -241,12 +285,23 @@ class MainActivity : AppCompatActivity() {
             var accumulatedDrag = 0f
             val swipeThreshold = screenWidth * 1f
 
+            //Define subtle gradient
+            val gradientBrush = Brush.linearGradient(
+                colors = listOf(
+                    Color(0xFF0666FF),
+                    Color.White
+                ),
+                start = androidx.compose.ui.geometry.Offset(0f, 0f),
+                end = androidx.compose.ui.geometry.Offset(1000f, 1000f)
+            )
+
             Box(
                 modifier = Modifier
                     .fillMaxSize()
+                    .background(brush = gradientBrush)
                     .pointerInput(Unit) {
                         detectHorizontalDragGestures(
-                            onHorizontalDrag = { change, dragAmount  ->
+                            onHorizontalDrag = { change, dragAmount ->
                                 accumulatedDrag += dragAmount //Accumulate drag distance
 
                                 //Check if the accumulated drag surpasses the swipe threshold
