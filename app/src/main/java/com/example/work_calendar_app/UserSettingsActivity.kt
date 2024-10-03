@@ -48,6 +48,9 @@ class UserSettingsActivity : AppCompatActivity() {
 //    private var workDay2Color by mutableStateOf(Color.Gray)
 //    private var workDay3Color by mutableStateOf(Color.Gray)
     private var outlineColor by mutableStateOf(Color.Gray)
+    private var backgroundColor1 by mutableStateOf(Color.Blue)
+    private var backgroundColor2 by mutableStateOf(Color.White)
+    private var topBarColor by mutableStateOf(Color.Blue)
 
     //State variable to control dialog visibility and the current color to edit
     private var showColorPicker by mutableStateOf(false)
@@ -59,6 +62,9 @@ class UserSettingsActivity : AppCompatActivity() {
         const val WORK_DAY_2_COLOR_KEY = "workDay2Color"
         const val WORK_DAY_3_COLOR_KEY = "workDay3Color"
         const val OUTLINE_COLOR_KEY = "outlineColor"
+        const val BACKGROUND_COLOR_1_KEY = "backgroundColor1"
+        const val BACKGROUND_COLOR_2_KEY = "backgroundColor2"
+        const val TOP_BAR_COLOR_KEY = "topBarColor"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -88,13 +94,19 @@ class UserSettingsActivity : AppCompatActivity() {
                 Column(modifier = Modifier.padding(16.dp)) {
                     ColorPickerDisplay(
                         workDay1Color,
-//                    workDay2Color,
-//                    workDay3Color,
+//                      workDay2Color,
+//                      workDay3Color,
                         outlineColor,
+                        backgroundColor1,
+                        backgroundColor2,
+                        topBarColor,
                         onWorkDay1ColorSelected = { color -> openColorPicker(WORK_DAY_1_COLOR_KEY) { workDay1Color = color } },
-//                    onWorkDay2ColorSelected = { color -> openColorPicker { workDay2Color = color } },
-//                    onWorkDay3ColorSelected = { color -> openColorPicker { workDay3Color = color } },
-                        onOutlineColorSelected = { color -> openColorPicker(OUTLINE_COLOR_KEY) { outlineColor = color }}
+//                      onWorkDay2ColorSelected = { color -> openColorPicker { workDay2Color = color } },
+//                      onWorkDay3ColorSelected = { color -> openColorPicker { workDay3Color = color } },
+                        onOutlineColorSelected = { color -> openColorPicker(OUTLINE_COLOR_KEY) { outlineColor = color } },
+                        onBackgroundColor1Selected = { color -> openColorPicker(BACKGROUND_COLOR_1_KEY) {backgroundColor1 = color }},
+                        onBackgroundColor2Selected = { color -> openColorPicker(BACKGROUND_COLOR_2_KEY) {backgroundColor2 = color}},
+                        onTopBarColorSelected = { color -> openColorPicker(TOP_BAR_COLOR_KEY) {topBarColor = color} }
                     )
                     Spacer (modifier = Modifier.height(16.dp))
 
@@ -115,9 +127,12 @@ class UserSettingsActivity : AppCompatActivity() {
     private fun loadColorPreferences() {
         val sharedPreferences = getSharedPreferences("user_preferences", Context.MODE_PRIVATE)
         workDay1Color = Color(sharedPreferences.getInt("workDay1Color", Color.Green.toArgb()))
-//        workDay2Color = Color(sharedPreferences.getInt("workDay2Color", Color.Yellow.toArgb()))
-//        workDay3Color = Color(sharedPreferences.getInt("workDay3Color", Color.Red.toArgb()))
+//      workDay2Color = Color(sharedPreferences.getInt("workDay2Color", Color.Yellow.toArgb()))
+//      workDay3Color = Color(sharedPreferences.getInt("workDay3Color", Color.Red.toArgb()))
         outlineColor = Color(sharedPreferences.getInt("outlineColor", Color.Blue.toArgb()))
+        backgroundColor1 = Color(sharedPreferences.getInt("backgroundColor1", Color.Blue.toArgb()))
+        backgroundColor2 =  Color(sharedPreferences.getInt("backgroundColor2", Color.White.toArgb()))
+        topBarColor =  Color(sharedPreferences.getInt("topBarColor", Color.Blue.toArgb()))
     }
     private fun openColorPicker(key: String, onColorSelected: (Color) -> Unit) {
         colorKey = key
@@ -142,10 +157,16 @@ class UserSettingsActivity : AppCompatActivity() {
 //        workDay2Color: Color,
 //        workDay3Color: Color,
         outlineColor: Color,
+        backgroundColor1: Color,
+        backgroundColor2: Color,
+        topBarColor: Color,
         onWorkDay1ColorSelected: (Color) -> Unit,
 //        onWorkDay2ColorSelected: (Color) -> Unit,
 //        onWorkDay3ColorSelected: (Color) -> Unit,
-        onOutlineColorSelected: (Color) -> Unit
+        onOutlineColorSelected: (Color) -> Unit,
+        onBackgroundColor1Selected: (Color) -> Unit,
+        onBackgroundColor2Selected: (Color) -> Unit,
+        onTopBarColorSelected: (Color) -> Unit
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             //Work Day 1
@@ -229,6 +250,73 @@ class UserSettingsActivity : AppCompatActivity() {
                         .weight(0.1f)
                 )
             }
+            Spacer(modifier = Modifier.height(8.dp))
+
+            //Background Color 1
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Button(onClick = {
+                    openColorPicker(BACKGROUND_COLOR_1_KEY) { color ->
+                        onBackgroundColor1Selected(color)
+                        saveColorPreference(BACKGROUND_COLOR_1_KEY, color.toArgb())
+                    }
+                },
+                    modifier = Modifier.weight(0.5f)
+                ) {
+                    Text("Change Background 1 Color")
+                }
+                Spacer(modifier = Modifier.width(15.dp))
+                Box(
+                    modifier = Modifier
+                        .size(50.dp)
+                        .background(backgroundColor1, RoundedCornerShape(16.dp))
+                        .weight(0.1f)
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+
+            //Background Color 2
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Button(onClick = {
+                    openColorPicker(BACKGROUND_COLOR_2_KEY) { color ->
+                        onBackgroundColor2Selected(color)
+                        saveColorPreference(BACKGROUND_COLOR_2_KEY, color.toArgb())
+                    }
+                },
+                    modifier = Modifier.weight(0.5f)
+                ) {
+                    Text("Change Background 2 Color")
+                }
+                Spacer(modifier = Modifier.width(15.dp))
+                Box(
+                    modifier = Modifier
+                        .size(50.dp)
+                        .background(backgroundColor2, RoundedCornerShape(16.dp))
+                        .weight(0.1f)
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+
+            //Top Bar Color
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Button(onClick = {
+                    openColorPicker(TOP_BAR_COLOR_KEY) { color ->
+                        onTopBarColorSelected(color)
+                        saveColorPreference(TOP_BAR_COLOR_KEY, color.toArgb())
+                    }
+                },
+                    modifier = Modifier.weight(0.5f)
+                ) {
+                    Text("Change Top Bar Color")
+                }
+                Spacer(modifier = Modifier.width(15.dp))
+                Box(
+                    modifier = Modifier
+                        .size(50.dp)
+                        .background(topBarColor, RoundedCornerShape(16.dp))
+                        .weight(0.1f)
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
         }
     }
 

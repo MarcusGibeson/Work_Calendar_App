@@ -33,6 +33,10 @@ fun WorkCalendar(currentMonth: LocalDate, daysInMonth: Int, workDays: List<Int>,
     val outlineColor = sharedPreferences.getInt("outlineColor", Color.Cyan.toArgb())
 
     val firstDayOfMonth = (currentMonth.withDayOfMonth(1).dayOfWeek.value % 7)
+
+    val totalDaysToRender = firstDayOfMonth + daysInMonth
+    val numberOfWeeks = (totalDaysToRender / 7) + if (totalDaysToRender % 7 != 0) 1 else 0
+
     val currentDay = if (currentMonth.month == LocalDate.now().month && currentMonth.year == LocalDate.now().year) {
         LocalDate.now().dayOfMonth
     } else null
@@ -47,7 +51,7 @@ fun WorkCalendar(currentMonth: LocalDate, daysInMonth: Int, workDays: List<Int>,
         )
         {
             //Calendar grid
-            for (week in 0..5) {
+            for (week in 0 until numberOfWeeks) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(0.dp)
@@ -124,39 +128,6 @@ fun DayDetailsPopup(selectedDay: Int, startTime: String, endTime: String, breakT
             }
         }
     )
-}
-
-@Composable
-fun MultipleDaySelectionCalendar(workEntries: Map<Int, Pair<Int, Double>>, onCalculateTotalWage: (Double) -> Unit) {
-    val selectedDays = remember { mutableListOf<Int>() }
-
-    LazyVerticalGrid(columns = GridCells.Fixed(7)) {
-        items(workEntries.keys.size) {day ->
-            val isSelected = selectedDays.contains(day + 1)
-            Box(
-                modifier = Modifier
-                    .padding(8.dp)
-                    .background(if (isSelected) Color.Blue else Color.Transparent)
-                    .clickable {
-                        if (isSelected) selectedDays.remove(day + 1)
-                        else selectedDays.add(day + 1)
-                    },
-                contentAlignment = Alignment.Center
-            ) {
-                Text(text = "${day + 1}")
-            }
-        }
-    }
-
-    Button(onClick = {
-        //Calculate the total wage based on selected days
-        val totalWage = selectedDays.sumOf { day ->
-            workEntries[day]?.second ?: 0.0
-        }
-        onCalculateTotalWage(totalWage)
-    }) {
-        Text("Calculate Total Wage")
-    }
 }
 
 fun getDayWithOrdinalSuffix(day: Int): String {

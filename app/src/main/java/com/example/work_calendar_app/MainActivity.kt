@@ -4,6 +4,7 @@ package com.example.work_calendar_app
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.graphics.Rect
 import android.graphics.drawable.Icon
 import android.os.Bundle
@@ -56,6 +57,7 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -67,11 +69,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -153,8 +157,39 @@ class MainActivity : AppCompatActivity() {
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun CalendarScreen() {
-        var workEntries by remember { mutableStateOf( mutableMapOf<Long, WorkEntry>()) }
+        var workEntries by remember { mutableStateOf(mutableMapOf<Long, WorkEntry>()) }
         var currentMonth by remember { mutableStateOf(LocalDate.now()) }
+        val context = LocalContext.current
+        val sharedPreferences =
+            context.getSharedPreferences("user_preferences", Context.MODE_PRIVATE)
+
+        var topBarColor by remember {
+            mutableStateOf(
+                Color(
+                    sharedPreferences.getInt(
+                        "topBarColor",
+                        Color.Blue.toArgb()
+                    )
+                )
+            )
+        }
+
+        //Whenever the screen is recomposed, ensure it checks if the preferences have changed
+        DisposableEffect(Unit) {
+            val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+                if (key == "topBarColor") {
+                    //Update topBarColor when the preference changes
+                    topBarColor =
+                        Color(sharedPreferences.getInt("topBarColor", Color.Blue.toArgb()))
+                }
+            }
+            sharedPreferences.registerOnSharedPreferenceChangeListener(listener)
+
+            //Clean up listener when composable leaves the composition
+            onDispose {
+                sharedPreferences.unregisterOnSharedPreferenceChangeListener(listener)
+            }
+        }
 
         Scaffold(
             topBar = {
@@ -175,7 +210,7 @@ class MainActivity : AppCompatActivity() {
                             firstSelectedDate = null
                             secondSelectedDate = null
                             selectedDay = -1
-                        }) {
+                        }, modifier = Modifier.width(80.dp)) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier.padding(start = 4.dp)
@@ -188,9 +223,10 @@ class MainActivity : AppCompatActivity() {
                                 Text(
                                     text = if (isSelectingRange) "Select Range" else "Single",
                                     fontSize = 12.sp,
-                                    color = Color.White,
-                                    maxLines = 1,
-                                    modifier = Modifier.wrapContentWidth()
+                                    color = Color.Black,
+                                    maxLines = 2,
+                                    modifier = Modifier.width(80.dp),
+                                    textAlign = TextAlign.Start
                                 )
                             }
 
@@ -202,7 +238,7 @@ class MainActivity : AppCompatActivity() {
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color(0xFF0666FF)
+                        containerColor = Color(topBarColor.toArgb())
                     )
                 )
             },
@@ -241,6 +277,11 @@ class MainActivity : AppCompatActivity() {
 
             //Dummy data for workDays and workEntries
             val workDays = remember { mutableStateListOf<Int>() }
+            val sharedPreferences = context.getSharedPreferences("user_preferences", Context.MODE_PRIVATE)
+
+            //Retrieve colors from preferences, with default fallback values
+            val backgroundColor1 = sharedPreferences.getInt("backgroundColor1", Color.Blue.toArgb())
+            val backgroundColor2 = sharedPreferences.getInt("backgroundColor2", Color.White.toArgb())
 
             //Initial load
             LaunchedEffect(Unit) {
@@ -288,8 +329,8 @@ class MainActivity : AppCompatActivity() {
             //Define subtle gradient
             val gradientBrush = Brush.linearGradient(
                 colors = listOf(
-                    Color(0xFF0666FF),
-                    Color.White
+                    Color(backgroundColor1),
+                    Color(backgroundColor2)
                 ),
                 start = androidx.compose.ui.geometry.Offset(0f, 0f),
                 end = androidx.compose.ui.geometry.Offset(1000f, 1000f)
@@ -330,7 +371,7 @@ class MainActivity : AppCompatActivity() {
                         .fillMaxSize()
                         .padding(8.dp, bottom = 0.dp)
                 ) {
-                    Spacer(modifier = Modifier.height(60.dp))
+                    Spacer(modifier = Modifier.height(70.dp)) //spacer between TopBar and prev/next buttons
 
                     //Row for previous and next buttons with Month title in between
                     Row(
@@ -407,16 +448,6 @@ class MainActivity : AppCompatActivity() {
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        //Button to switch modes
-                        Button(onClick = {
-                            isSelectingRange = !isSelectingRange
-                            firstSelectedDate = null
-                            secondSelectedDate = null
-                            selectedDay = -1
-                        }) {
-                            Text(if (isSelectingRange) "Switch to Single Date Mode" else "Switch to Date Range Mode")
-                        }
-
                         Spacer(modifier = Modifier.width(16.dp))
 
                         //Add work schedule button
