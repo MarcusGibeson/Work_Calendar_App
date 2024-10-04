@@ -1,6 +1,7 @@
 package com.example.work_calendar_app.calendar
 
 import android.content.Context
+import android.content.SharedPreferences
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -27,10 +28,47 @@ fun WorkCalendar(currentMonth: LocalDate, daysInMonth: Int, workDays: List<Int>,
     val sharedPreferences = context.getSharedPreferences("user_preferences", Context.MODE_PRIVATE)
 
     //Retrieve colors from preferences, with default fallback values
-    val workDay1Color = sharedPreferences.getInt("workDay1Color", Color.Green.toArgb())
-    val workDay2Color = sharedPreferences.getInt("workDay2Color", Color.Magenta.toArgb())
-    val workDay3Color = sharedPreferences.getInt("workDay3Color", Color.Yellow.toArgb())
-    val outlineColor = sharedPreferences.getInt("outlineColor", Color.Cyan.toArgb())
+    var workDay1Color by remember {
+        mutableStateOf(
+            Color(
+                sharedPreferences.getInt(
+                    "workDay1Color",
+                    Color.White.toArgb()
+                )
+            )
+        )
+    }
+//    var workDay2Color by remember {
+//        mutableStateOf(
+//            Color(
+//                sharedPreferences.getInt(
+//                    "workDay2Color",
+//                    Color.White.toArgb()
+//                )
+//            )
+//        )
+//    }
+//    var workDay3Color by remember {
+//        mutableStateOf(
+//            Color(
+//                sharedPreferences.getInt(
+//                    "workDay3Color",
+//                    Color.White.toArgb()
+//                )
+//            )
+//        )
+//    }
+    var outlineColor by remember {
+        mutableStateOf(
+            Color(
+                sharedPreferences.getInt(
+                    "outlineColor",
+                    Color.White.toArgb()
+                )
+            )
+        )
+    }
+
 
     val firstDayOfMonth = (currentMonth.withDayOfMonth(1).dayOfWeek.value % 7)
 
@@ -40,6 +78,28 @@ fun WorkCalendar(currentMonth: LocalDate, daysInMonth: Int, workDays: List<Int>,
     val currentDay = if (currentMonth.month == LocalDate.now().month && currentMonth.year == LocalDate.now().year) {
         LocalDate.now().dayOfMonth
     } else null
+
+    //Whenever the screen is recomposed, ensure it checks if the preferences have changed
+    DisposableEffect(Unit) {
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == "workDay1Color") {
+                //Update workDay2Color when the preference changes
+                workDay1Color =
+                    Color(sharedPreferences.getInt("workDay1Color", Color.Green.toArgb()))
+            } else if (key == "outlineColor") {
+                //Update outlineColor when the preference changes
+                outlineColor =
+                    Color(sharedPreferences.getInt("outlineColor", Color.Green.toArgb()))
+            }
+        }
+        sharedPreferences.registerOnSharedPreferenceChangeListener(listener)
+
+        //Clean up listener when composable leaves the composition
+        onDispose {
+            sharedPreferences.unregisterOnSharedPreferenceChangeListener(listener)
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -60,13 +120,13 @@ fun WorkCalendar(currentMonth: LocalDate, daysInMonth: Int, workDays: List<Int>,
                         val day = (week * 7 + dayOfWeek) - firstDayOfMonth + 1
 
                         if (day in 1..daysInMonth) {
-                            val currentDayColor =  if (day == currentDay) Color(outlineColor) else Color.Transparent
+                            val currentDayColor =  if (day == currentDay) Color(outlineColor.toArgb()) else Color.Transparent
                             val borderColor = Color.Black
                             val backgroundColor = when {
-                                workDays.contains(day) -> Color(workDay1Color)//WorkDays
+                                workDays.contains(day) -> Color(workDay1Color.toArgb())//WorkDays
                                 //work2Days.contains(day) -> Color(workDay2Color)
                                 //work3Days.contains(day) -> Color(workDay3Color)
-                                else -> Color.White
+                                else -> Color.LightGray
                             }
                             Box(
                                 modifier = Modifier

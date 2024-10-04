@@ -46,6 +46,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -174,6 +175,17 @@ class MainActivity : AppCompatActivity() {
             )
         }
 
+        var baseTextColor by remember {
+            mutableStateOf(
+                Color(
+                    sharedPreferences.getInt(
+                        "baseTextColor",
+                        Color.Blue.toArgb()
+                    )
+                )
+            )
+        }
+
         //Whenever the screen is recomposed, ensure it checks if the preferences have changed
         DisposableEffect(Unit) {
             val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
@@ -181,6 +193,9 @@ class MainActivity : AppCompatActivity() {
                     //Update topBarColor when the preference changes
                     topBarColor =
                         Color(sharedPreferences.getInt("topBarColor", Color.Blue.toArgb()))
+                } else if (key == "baseTextColor") {
+                    baseTextColor =
+                        Color(sharedPreferences.getInt("baseTextColor", Color.Black.toArgb()))
                 }
             }
             sharedPreferences.registerOnSharedPreferenceChangeListener(listener)
@@ -200,7 +215,10 @@ class MainActivity : AppCompatActivity() {
                             horizontalArrangement = Arrangement.Center
                         ) {
                             Spacer(Modifier.weight(1f))
-                            Text("Work Calendar")
+                            Text(
+                                text = "Work Calendar",
+                                color = baseTextColor
+                            )
                             Spacer(Modifier.weight(1f))
                         }
                     },
@@ -223,7 +241,7 @@ class MainActivity : AppCompatActivity() {
                                 Text(
                                     text = if (isSelectingRange) "Select Range" else "Single",
                                     fontSize = 12.sp,
-                                    color = Color.Black,
+                                    color = baseTextColor,
                                     maxLines = 2,
                                     modifier = Modifier.width(80.dp),
                                     textAlign = TextAlign.Start
@@ -280,8 +298,77 @@ class MainActivity : AppCompatActivity() {
             val sharedPreferences = context.getSharedPreferences("user_preferences", Context.MODE_PRIVATE)
 
             //Retrieve colors from preferences, with default fallback values
-            val backgroundColor1 = sharedPreferences.getInt("backgroundColor1", Color.Blue.toArgb())
-            val backgroundColor2 = sharedPreferences.getInt("backgroundColor2", Color.White.toArgb())
+            var backgroundColor1 by remember {
+                mutableStateOf(
+                    Color(
+                        sharedPreferences.getInt(
+                            "backgroundColor1",
+                            Color.Blue.toArgb()
+                        )
+                    )
+                )
+            }
+            var backgroundColor2 by remember {
+                mutableStateOf(
+                    Color(
+                        sharedPreferences.getInt(
+                            "backgroundColor2",
+                            Color.White.toArgb()
+                        )
+                    )
+                )
+            }
+
+            var baseTextColor by remember {
+                mutableStateOf(
+                    Color(
+                        sharedPreferences.getInt(
+                            "baseTextColor",
+                            Color.Blue.toArgb()
+                        )
+                    )
+                )
+            }
+
+            var baseButtonColor by remember {
+                mutableStateOf(
+                    Color(
+                        sharedPreferences.getInt(
+                            "baseButtonColor",
+                            Color.Blue.toArgb()
+                        )
+                    )
+                )
+            }
+
+
+
+
+            //Whenever the screen is recomposed, ensure it checks if the preferences have changed
+            DisposableEffect(Unit) {
+                val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+                    when (key) {
+                        "backgroundColor1" -> {
+                            backgroundColor1 = Color(sharedPreferences.getInt("backgroundColor1", Color.Blue.toArgb()))
+                        }
+                        "backgroundColor2" -> {
+                            backgroundColor2 = Color(sharedPreferences.getInt("backgroundColor2", Color.White.toArgb()))
+                        }
+                        "baseTextColor" -> {
+                            baseTextColor = Color(sharedPreferences.getInt("baseTextColor", Color.Black.toArgb()))
+                        }
+                        "baseButtonColor" -> {
+                            baseButtonColor = Color(sharedPreferences.getInt("baseButtonColor", Color.Black.toArgb()))
+                        }
+                    }
+                }
+                sharedPreferences.registerOnSharedPreferenceChangeListener(listener)
+
+                //Clean up listener when composable leaves the composition
+                onDispose {
+                    sharedPreferences.unregisterOnSharedPreferenceChangeListener(listener)
+                }
+            }
 
             //Initial load
             LaunchedEffect(Unit) {
@@ -329,8 +416,8 @@ class MainActivity : AppCompatActivity() {
             //Define subtle gradient
             val gradientBrush = Brush.linearGradient(
                 colors = listOf(
-                    Color(backgroundColor1),
-                    Color(backgroundColor2)
+                    Color(backgroundColor1.toArgb()),
+                    Color(backgroundColor2.toArgb())
                 ),
                 start = androidx.compose.ui.geometry.Offset(0f, 0f),
                 end = androidx.compose.ui.geometry.Offset(1000f, 1000f)
@@ -383,11 +470,17 @@ class MainActivity : AppCompatActivity() {
                         Button(onClick = {
                             currentMonth = currentMonth.minusMonths(1)
                             onMonthChanged(currentMonth.month)
-                        }) {
+                        },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = baseButtonColor,
+                                contentColor = baseTextColor,
+                            )
+                        ) {
                             Text("Previous")
                         }
                         Text(
                             text = currentMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
+                            color = baseTextColor,
                             modifier = Modifier.padding(
                                 PaddingValues(start = 16.dp, end = 16.dp, top = 10.dp)),
                             fontSize = 16.sp
@@ -395,7 +488,12 @@ class MainActivity : AppCompatActivity() {
                         Button(onClick = {
                             currentMonth = currentMonth.plusMonths(1)
                             onMonthChanged(currentMonth.month)
-                        }) {
+                        },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = baseButtonColor,
+                                contentColor = baseTextColor,
+                            )
+                        ) {
                             Text("Next")
                         }
                     }
@@ -412,6 +510,7 @@ class MainActivity : AppCompatActivity() {
                         for (day in daysOfWeek) {
                             Text (
                                 text = day,
+                                color = baseTextColor,
                                 modifier = Modifier
                                     .weight(1f)
                                     .padding(horizontal = 2.dp),
@@ -457,7 +556,11 @@ class MainActivity : AppCompatActivity() {
                                 addWorkActivityLauncher.launch(intent)
                             },
                             modifier = Modifier
-                                .padding(start = 0.dp, end = 16.dp)
+                                .padding(start = 0.dp, end = 16.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = baseButtonColor,
+                                contentColor = baseTextColor,
+                            )
                         ){
                             Text("Add Work Entry")
                         }
@@ -465,7 +568,11 @@ class MainActivity : AppCompatActivity() {
 
 
                     //Composable view for Work Details
-                    Text(text = "  Work Date  |  Work Time  ", modifier = Modifier.padding(vertical = 0.dp))
+                    Text(
+                        text = "  Work Date  |  Work Time  ",
+                        modifier = Modifier.padding(vertical = 0.dp),
+                        color = baseTextColor
+                    )
                     WorkDetailsList(workEntries, currentMonth)
 
                     //Popup for displaying details
@@ -496,6 +603,79 @@ class MainActivity : AppCompatActivity() {
         //Extracting the current year and month for date formatting
         val currentYear = currentMonth.year
         val currentMonthValue = currentMonth.monthValue
+
+        val context = LocalContext.current
+        val sharedPreferences =
+            context.getSharedPreferences("user_preferences", Context.MODE_PRIVATE)
+
+        var baseTextColor by remember {
+            mutableStateOf(
+                Color(
+                    sharedPreferences.getInt(
+                        "baseTextColor",
+                        Color.Blue.toArgb()
+                    )
+                )
+            )
+        }
+
+        var detailsTextColor by remember {
+            mutableStateOf(
+                Color(
+                    sharedPreferences.getInt(
+                        "detailsTextColor",
+                        Color.Black.toArgb()
+                    )
+                )
+            )
+        }
+        var detailsDateColor by remember {
+            mutableStateOf(
+                Color(
+                    sharedPreferences.getInt(
+                        "detailsDateColor",
+                        Color.Blue.toArgb()
+                    )
+                )
+            )
+        }
+        var detailsWageColor by remember {
+            mutableStateOf(
+                Color(
+                    sharedPreferences.getInt(
+                        "detailsWageColor",
+                        Color.Red.toArgb()
+                    )
+                )
+            )
+        }
+
+        //Refresh on color preference change
+        DisposableEffect(Unit) {
+            val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+                when (key) {
+                    "baseTextColor" -> {
+                        baseTextColor = Color(sharedPreferences.getInt("baseTextColor", Color.Black.toArgb()))
+                    }
+                    "detailsTextColor" -> {
+                        detailsTextColor = Color(sharedPreferences.getInt("detailsTextColor", Color.Black.toArgb()))
+                    }
+                    "detailsDateColor" -> {
+                        detailsDateColor = Color(sharedPreferences.getInt("detailsDateColor", Color.Blue.toArgb()))
+                    }
+                    "detailsWageColor" -> {
+                        detailsWageColor = Color(sharedPreferences.getInt("detailsWageColor", Color.Red.toArgb()))
+                    }
+                }
+            }
+            sharedPreferences.registerOnSharedPreferenceChangeListener(listener)
+
+            //Clean up listener when composable leaves the composition
+            onDispose {
+                sharedPreferences.unregisterOnSharedPreferenceChangeListener(listener)
+            }
+        }
+
 
         // Log current month and year
         Log.d("WorkDetailsList", "Current year: $currentYear, Current month: $currentMonthValue")
@@ -587,16 +767,17 @@ class MainActivity : AppCompatActivity() {
                             Text(
                                 text = "${workDetail.workDate}:",
                                 modifier = Modifier.weight(1f),
-                                color = Color.Blue
+                                color = detailsDateColor
                             )
                             Text(
-                                text = " ${workDetail.startTime} - ${workDetail.endTime}"
+                                text = " ${workDetail.startTime} - ${workDetail.endTime}",
+                                color = detailsTextColor
                             )
                         }
                         Text(
                             text = "$${workDetail.wage}",
                             modifier = Modifier.padding(start = 8.dp, end = 16.dp),
-                            color = Color.Red
+                            color = detailsWageColor
                         )
 
                         Text(
@@ -609,7 +790,7 @@ class MainActivity : AppCompatActivity() {
                                     // Log when a work entry is selected for details
                                     Log.d("WorkDetailsList", "Selected WorkEntry ID: $workDateKey for details")
                                 },
-                            color = MaterialTheme.colorScheme.primary
+                            color = detailsTextColor
                         )
                     }
                 }
@@ -621,7 +802,7 @@ class MainActivity : AppCompatActivity() {
                     .padding(16.dp)
                     .border(
                         width = 2.dp,
-                        color = Color.Gray,
+                        color = detailsDateColor,
                         shape = RoundedCornerShape(8.dp)
                     )
                     .padding(8.dp)
@@ -630,14 +811,14 @@ class MainActivity : AppCompatActivity() {
                 Text(
                     text = "Total Earned: ",
                     style = MaterialTheme.typography.headlineMedium,
-                    color = Color.Black
+                    color = detailsTextColor
                 )
 
                 //Display total wage amount
                 Text(
                     text = "$${String.format("%.2f", totalWage)}",
                     style = MaterialTheme.typography.headlineMedium,
-                    color = Color.Red,
+                    color = detailsWageColor
                 )
             }
 

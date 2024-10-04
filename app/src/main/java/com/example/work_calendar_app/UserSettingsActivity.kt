@@ -44,13 +44,25 @@ import androidx.compose.ui.window.Dialog
 class UserSettingsActivity : AppCompatActivity() {
 
     //State variables for colors
+    //Calendar
     private var workDay1Color by mutableStateOf(Color.Gray)
 //    private var workDay2Color by mutableStateOf(Color.Gray)
 //    private var workDay3Color by mutableStateOf(Color.Gray)
     private var outlineColor by mutableStateOf(Color.Gray)
+
+    //App
     private var backgroundColor1 by mutableStateOf(Color.Blue)
     private var backgroundColor2 by mutableStateOf(Color.White)
     private var topBarColor by mutableStateOf(Color.Blue)
+    private var baseTextColor by mutableStateOf(Color.Black)
+    private var baseButtonColor by mutableStateOf(Color.Green)
+
+
+    //Details
+    private var detailsTextColor by mutableStateOf(Color.Black)
+    private var detailsDateColor by mutableStateOf(Color.Blue)
+    private var detailsWageColor by mutableStateOf(Color.Red)
+
 
     //State variable to control dialog visibility and the current color to edit
     private var showColorPicker by mutableStateOf(false)
@@ -65,6 +77,12 @@ class UserSettingsActivity : AppCompatActivity() {
         const val BACKGROUND_COLOR_1_KEY = "backgroundColor1"
         const val BACKGROUND_COLOR_2_KEY = "backgroundColor2"
         const val TOP_BAR_COLOR_KEY = "topBarColor"
+        const val BASE_TEXT_COLOR_KEY = "baseTextColor"
+        const val BASE_BUTTON_COLOR_KEY = "baseButtonColor"
+        const val DETAILS_TEXT_COLOR_KEY = "detailsTextColor"
+        const val DETAILS_DATE_COLOR_KEY = "detailsDateColor"
+        const val DETAILS_WAGE_COLOR_KEY = "detailsWageColor"
+
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -100,13 +118,24 @@ class UserSettingsActivity : AppCompatActivity() {
                         backgroundColor1,
                         backgroundColor2,
                         topBarColor,
+                        baseTextColor,
+                        baseButtonColor,
+                        detailsTextColor,
+                        detailsDateColor,
+                        detailsWageColor,
                         onWorkDay1ColorSelected = { color -> openColorPicker(WORK_DAY_1_COLOR_KEY) { workDay1Color = color } },
 //                      onWorkDay2ColorSelected = { color -> openColorPicker { workDay2Color = color } },
 //                      onWorkDay3ColorSelected = { color -> openColorPicker { workDay3Color = color } },
                         onOutlineColorSelected = { color -> openColorPicker(OUTLINE_COLOR_KEY) { outlineColor = color } },
-                        onBackgroundColor1Selected = { color -> openColorPicker(BACKGROUND_COLOR_1_KEY) {backgroundColor1 = color }},
-                        onBackgroundColor2Selected = { color -> openColorPicker(BACKGROUND_COLOR_2_KEY) {backgroundColor2 = color}},
-                        onTopBarColorSelected = { color -> openColorPicker(TOP_BAR_COLOR_KEY) {topBarColor = color} }
+                        onBackgroundColor1Selected = { color -> openColorPicker(BACKGROUND_COLOR_1_KEY) { backgroundColor1 = color } },
+                        onBackgroundColor2Selected = { color -> openColorPicker(BACKGROUND_COLOR_2_KEY) { backgroundColor2 = color } },
+                        onTopBarColorSelected = { color -> openColorPicker(TOP_BAR_COLOR_KEY) { topBarColor = color } },
+                        onBaseTextColorSelected = { color -> openColorPicker(BASE_TEXT_COLOR_KEY) { baseTextColor = color } },
+                        onBaseButtonColorSelected = { color -> openColorPicker(BASE_BUTTON_COLOR_KEY) { baseButtonColor = color } },
+                        onDetailsTextColorSelected = { color -> openColorPicker(DETAILS_TEXT_COLOR_KEY) { detailsTextColor = color } },
+                        onDetailsDateColorSelected = { color -> openColorPicker(DETAILS_DATE_COLOR_KEY) { detailsDateColor = color } },
+                        onDetailsWageColorSelected = { color -> openColorPicker(DETAILS_WAGE_COLOR_KEY) { detailsWageColor = color } },
+
                     )
                     Spacer (modifier = Modifier.height(16.dp))
 
@@ -133,6 +162,11 @@ class UserSettingsActivity : AppCompatActivity() {
         backgroundColor1 = Color(sharedPreferences.getInt("backgroundColor1", Color.Blue.toArgb()))
         backgroundColor2 =  Color(sharedPreferences.getInt("backgroundColor2", Color.White.toArgb()))
         topBarColor =  Color(sharedPreferences.getInt("topBarColor", Color.Blue.toArgb()))
+        baseTextColor = Color(sharedPreferences.getInt("baseTextColor", Color.Black.toArgb()))
+        baseButtonColor = Color(sharedPreferences.getInt("baseButtonColor", Color.Green.toArgb()))
+        detailsTextColor = Color(sharedPreferences.getInt("detailsTextColor", Color.Black.toArgb()))
+        detailsDateColor = Color(sharedPreferences.getInt("detailsDateColor", Color.Blue.toArgb()))
+        detailsWageColor = Color(sharedPreferences.getInt("detailsWageColor", Color.Red.toArgb()))
     }
     private fun openColorPicker(key: String, onColorSelected: (Color) -> Unit) {
         colorKey = key
@@ -160,13 +194,23 @@ class UserSettingsActivity : AppCompatActivity() {
         backgroundColor1: Color,
         backgroundColor2: Color,
         topBarColor: Color,
+        baseTextColor: Color,
+        baseButtonColor: Color,
+        detailsTextColor: Color,
+        detailsDateColor: Color,
+        detailsWageColor: Color,
         onWorkDay1ColorSelected: (Color) -> Unit,
 //        onWorkDay2ColorSelected: (Color) -> Unit,
 //        onWorkDay3ColorSelected: (Color) -> Unit,
         onOutlineColorSelected: (Color) -> Unit,
         onBackgroundColor1Selected: (Color) -> Unit,
         onBackgroundColor2Selected: (Color) -> Unit,
-        onTopBarColorSelected: (Color) -> Unit
+        onTopBarColorSelected: (Color) -> Unit,
+        onBaseTextColorSelected: (Color) -> Unit,
+        onBaseButtonColorSelected: (Color) -> Unit,
+        onDetailsTextColorSelected: (Color) -> Unit,
+        onDetailsDateColorSelected: (Color) -> Unit,
+        onDetailsWageColorSelected: (Color) -> Unit
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             //Work Day 1
@@ -189,7 +233,7 @@ class UserSettingsActivity : AppCompatActivity() {
                         .weight(0.2f)
                 )
             }
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 //            //Work Day 2
 //            Row(verticalAlignment = Alignment.CenterVertically) {
 //                Button(onClick = {
@@ -208,7 +252,7 @@ class UserSettingsActivity : AppCompatActivity() {
 //                        .weight(1f, fill = false)
 //                )
 //            }
-//            Spacer(modifier = Modifier.height(8.dp))
+//            Spacer(modifier = Modifier.height(4.dp))
 //
 //            //Work Day 3
 //            Row(verticalAlignment = Alignment.CenterVertically) {
@@ -228,7 +272,7 @@ class UserSettingsActivity : AppCompatActivity() {
 //                        .weight(1f, fill = false)
 //                )
 //            }
-//            Spacer(modifier = Modifier.height(8.dp))
+//            Spacer(modifier = Modifier.height(4.dp))
 
             //Current Day outline
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -250,7 +294,7 @@ class UserSettingsActivity : AppCompatActivity() {
                         .weight(0.1f)
                 )
             }
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
             //Background Color 1
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -272,7 +316,7 @@ class UserSettingsActivity : AppCompatActivity() {
                         .weight(0.1f)
                 )
             }
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
             //Background Color 2
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -294,7 +338,7 @@ class UserSettingsActivity : AppCompatActivity() {
                         .weight(0.1f)
                 )
             }
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
             //Top Bar Color
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -316,7 +360,117 @@ class UserSettingsActivity : AppCompatActivity() {
                         .weight(0.1f)
                 )
             }
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(4.dp))
+
+            //Base Text Color
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Button(onClick = {
+                    openColorPicker(BASE_TEXT_COLOR_KEY) { color ->
+                        onBaseTextColorSelected(color)
+                        saveColorPreference(BASE_TEXT_COLOR_KEY, color.toArgb())
+                    }
+                },
+                    modifier = Modifier.weight(0.5f)
+                ) {
+                    Text("Change base text Color")
+                }
+                Spacer(modifier = Modifier.width(15.dp))
+                Box(
+                    modifier = Modifier
+                        .size(50.dp)
+                        .background(baseTextColor, RoundedCornerShape(16.dp))
+                        .weight(0.1f)
+                )
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+
+            //Base Button Color
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Button(onClick = {
+                    openColorPicker(BASE_BUTTON_COLOR_KEY) { color ->
+                        onBaseButtonColorSelected(color)
+                        saveColorPreference(BASE_BUTTON_COLOR_KEY, color.toArgb())
+                    }
+                },
+                    modifier = Modifier.weight(0.5f)
+                ) {
+                    Text("Change base button Color")
+                }
+                Spacer(modifier = Modifier.width(15.dp))
+                Box(
+                    modifier = Modifier
+                        .size(50.dp)
+                        .background(baseButtonColor, RoundedCornerShape(16.dp))
+                        .weight(0.1f)
+                )
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+
+            //Details Text Color
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Button(onClick = {
+                    openColorPicker(DETAILS_TEXT_COLOR_KEY) { color ->
+                        onDetailsTextColorSelected(color)
+                        saveColorPreference(DETAILS_TEXT_COLOR_KEY, color.toArgb())
+                    }
+                },
+                    modifier = Modifier.weight(0.5f)
+                ) {
+                    Text("Change details text Color")
+                }
+                Spacer(modifier = Modifier.width(15.dp))
+                Box(
+                    modifier = Modifier
+                        .size(50.dp)
+                        .background(detailsTextColor, RoundedCornerShape(16.dp))
+                        .weight(0.1f)
+                )
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+
+            //Details Date Color
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Button(onClick = {
+                    openColorPicker(DETAILS_DATE_COLOR_KEY) { color ->
+                        onDetailsDateColorSelected(color)
+                        saveColorPreference(DETAILS_DATE_COLOR_KEY, color.toArgb())
+                    }
+                },
+                    modifier = Modifier.weight(0.5f)
+                ) {
+                    Text("Change details date Color")
+                }
+                Spacer(modifier = Modifier.width(15.dp))
+                Box(
+                    modifier = Modifier
+                        .size(50.dp)
+                        .background(detailsDateColor, RoundedCornerShape(16.dp))
+                        .weight(0.1f)
+                )
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+
+            //Details Wage Color
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Button(onClick = {
+                    openColorPicker(DETAILS_WAGE_COLOR_KEY) { color ->
+                        onDetailsDateColorSelected(color)
+                        saveColorPreference(DETAILS_WAGE_COLOR_KEY, color.toArgb())
+                    }
+                },
+                    modifier = Modifier.weight(0.5f)
+                ) {
+                    Text("Change details wage Color")
+                }
+                Spacer(modifier = Modifier.width(15.dp))
+                Box(
+                    modifier = Modifier
+                        .size(50.dp)
+                        .background(detailsWageColor, RoundedCornerShape(16.dp))
+                        .weight(0.1f)
+                )
+            }
+            Spacer(modifier = Modifier.height(4.dp))
         }
     }
 
