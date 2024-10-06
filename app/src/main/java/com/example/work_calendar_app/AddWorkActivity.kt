@@ -2,6 +2,8 @@ package com.example.work_calendar_app
 
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
+import android.content.Context
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.widget.Button
 import android.widget.EditText
@@ -21,6 +23,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 
 class AddWorkActivity : AppCompatActivity() {
 
@@ -69,9 +73,11 @@ class AddWorkActivity : AppCompatActivity() {
         overtimePayEditText = findViewById(R.id.overtimePay)
         btnSave = findViewById(R.id.btnSave)
         btnSaveSchedule = findViewById(R.id.saveScheduleButton)
+        btnFinish = findViewById(R.id.btnFinish)
         Log.d("AddWorkActivity", "Views initialized")
 
-        btnFinish = findViewById(R.id.btnFinish)
+       updateUIState()
+
 
         //Load saved schedules into the spinner
         loadSavedSchedulesIntoSpinner()
@@ -178,7 +184,7 @@ class AddWorkActivity : AppCompatActivity() {
 
             //Insert into saved schedules database
             dbHelper.insertSavedSchedule(scheduleName, startTime, endTime, breakTime, payType, hourlyRate, overtimePay)
-
+            updateUIState()
             Toast.makeText(this, "Schedule saved as $scheduleName", Toast.LENGTH_SHORT).show()
         }
 
@@ -272,5 +278,41 @@ class AddWorkActivity : AppCompatActivity() {
             }
         }
         cursor.close()
+    }
+
+    fun updateUIState() {
+        val sharedPreferences = getSharedPreferences("user_preferences", Context.MODE_PRIVATE)
+        val baseButtonColor = sharedPreferences.getInt("baseButtonColor", Color.Green.toArgb())
+        val baseTextColor = sharedPreferences.getInt("baseTextColor", Color.Black.toArgb())
+        val detailsTextColor = sharedPreferences.getInt("detailsTextColor", Color.Black.toArgb())
+        val backgroundColor1 = sharedPreferences.getInt("backgroundColor1", Color.White.toArgb())
+        val backgroundColor2 = sharedPreferences.getInt("backgroundColor2", Color.Blue.toArgb())
+
+
+        //Set Button Colors
+        btnSave.setBackgroundColor(baseButtonColor)
+        btnSaveSchedule.setBackgroundColor(baseButtonColor)
+        btnFinish.setBackgroundColor(baseButtonColor)
+
+//        //Set background colors in Gradient
+//        val gradientDrawable = GradientDrawable(GradientDrawable.Orientation.BL_TR, intArrayOf(backgroundColor1, backgroundColor2))
+//        findViewById<View>(R.id.rootLayout).background = gradientDrawable
+
+        //Set text colors
+        btnSave.setTextColor(baseTextColor)
+        workDate.setTextColor(detailsTextColor)
+        startTime.setTextColor(baseTextColor)
+        startTimeEditText.setTextColor(detailsTextColor)
+        endTime.setTextColor(baseTextColor)
+        endTimeEditText.setTextColor(detailsTextColor)
+        breakTime.setTextColor(baseTextColor)
+        breakTimeEditText.setTextColor(detailsTextColor)
+        payRate.setTextColor(baseTextColor)
+        payRateEditText.setTextColor(detailsTextColor)
+        overtimePay.setTextColor(baseTextColor)
+        overtimePayEditText.setTextColor(baseTextColor)
+        btnSave.setTextColor(baseTextColor)
+        btnSaveSchedule.setTextColor(baseTextColor)
+        btnFinish.setTextColor(baseTextColor)
     }
 }

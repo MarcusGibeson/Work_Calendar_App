@@ -341,6 +341,10 @@ class MainActivity : AppCompatActivity() {
                 )
             }
 
+            var detailsTextColor by remember {
+                mutableStateOf(Color(sharedPreferences.getInt("detailsTextColor", Color.Black.toArgb())))
+            }
+
 
 
 
@@ -359,6 +363,9 @@ class MainActivity : AppCompatActivity() {
                         }
                         "baseButtonColor" -> {
                             baseButtonColor = Color(sharedPreferences.getInt("baseButtonColor", Color.Black.toArgb()))
+                        }
+                        "detailsTextColor" -> {
+                            detailsTextColor = Color(sharedPreferences.getInt("detailsTextColor", Color.Black.toArgb()))
                         }
                     }
                 }
@@ -476,7 +483,7 @@ class MainActivity : AppCompatActivity() {
                                 contentColor = baseTextColor,
                             )
                         ) {
-                            Text("Previous")
+                            Text("Previous", color = detailsTextColor)
                         }
                         Text(
                             text = currentMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
@@ -494,7 +501,7 @@ class MainActivity : AppCompatActivity() {
                                 contentColor = baseTextColor,
                             )
                         ) {
-                            Text("Next")
+                            Text("Next", color = detailsTextColor)
                         }
                     }
 
@@ -562,7 +569,7 @@ class MainActivity : AppCompatActivity() {
                                 contentColor = baseTextColor,
                             )
                         ){
-                            Text("Add Work Entry")
+                            Text("Add Work Entry", color = detailsTextColor)
                         }
                     }
 

@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 
@@ -147,9 +148,10 @@ class UserSettingsActivity : AppCompatActivity() {
                         Button (
                             onClick = {
                                 resetUserPreferences(context, ::updateUIState)
-                            }
+                            },
+                            colors = ButtonDefaults.buttonColors(baseButtonColor)
                         ) {
-                            Text("Reset default")
+                            Text("Reset default", color = detailsTextColor)
                         }
                         Spacer(modifier = Modifier.width(16.dp))
                         //Add finished button
@@ -157,9 +159,10 @@ class UserSettingsActivity : AppCompatActivity() {
                             onClick = {
                                 finish()
                             },
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(baseButtonColor)
                         ) {
-                            Text("Okay")
+                            Text("Okay", color = detailsTextColor)
                         }
                     }
 
@@ -212,10 +215,10 @@ class UserSettingsActivity : AppCompatActivity() {
         editor.putInt("workDay1Color", Color.Yellow.toArgb())
         editor.putInt("outlineColor", Color.Blue.toArgb())
         editor.putInt("topBarColor", Color.Blue.toArgb())
-        editor.putInt("backgroundColor1", Color.White.toArgb())
+        editor.putInt("backgroundColor1", Color(143, 216, 230).toArgb()) //light blue
         editor.putInt("backgroundColor2", Color.White.toArgb())
         editor.putInt("baseTextColor", Color.Black.toArgb())
-        editor.putInt("baseButtonColor", Color.Green.toArgb())
+        editor.putInt("baseButtonColor", Color(204, 153, 255).toArgb()) //light purple
         editor.putInt("detailsTextColor", Color.Black.toArgb())
         editor.putInt("detailsDateColor", Color.Blue.toArgb())
         editor.putInt("detailsWageColor", Color.Red.toArgb())
@@ -235,7 +238,7 @@ class UserSettingsActivity : AppCompatActivity() {
         val newBackgroundColor1 = sharedPreferences.getInt("backgroundColor1", Color.Gray.toArgb())
         val newBackgroundColor2 = sharedPreferences.getInt("backgroundColor2", Color.White.toArgb())
         val newBaseTextColor = sharedPreferences.getInt("baseTextColor", Color.Black.toArgb())
-        val newBaseButtonColor = sharedPreferences.getInt("baseButtonColorr", Color.Green.toArgb())
+        val newBaseButtonColor = sharedPreferences.getInt("baseButtonColor", Color.Green.toArgb())
         val newDetailsTextColor = sharedPreferences.getInt("detailsTextColor", Color.Black.toArgb())
         val newDetailsDateColor = sharedPreferences.getInt("detailsDateColor", Color.Blue.toArgb())
         val newDetailsWageColor = sharedPreferences.getInt("detailsWageColor", Color.Red.toArgb())
@@ -250,6 +253,8 @@ class UserSettingsActivity : AppCompatActivity() {
         detailsTextColor = Color(newDetailsTextColor)
         detailsDateColor = Color(newDetailsDateColor)
         detailsWageColor = Color(newDetailsWageColor)
+
+
 
     }
 
@@ -289,9 +294,10 @@ class UserSettingsActivity : AppCompatActivity() {
                         saveColorPreference(WORK_DAY_1_COLOR_KEY, color.toArgb())
                     }
                 },
-                    modifier = Modifier.weight(0.9f)
+                    modifier = Modifier.weight(0.9f),
+                    colors = ButtonDefaults.buttonColors(baseButtonColor)
                 ) {
-                    Text("Change first job color")
+                    Text("Change first job color", color = detailsTextColor)
                 }
                 Spacer(modifier = Modifier.width(16.dp))
                 Box(
@@ -350,9 +356,10 @@ class UserSettingsActivity : AppCompatActivity() {
                         saveColorPreference(OUTLINE_COLOR_KEY, color.toArgb())
                     }
                 },
+                    colors = ButtonDefaults.buttonColors(baseButtonColor),
                     modifier = Modifier.weight(0.5f)
                 ) {
-                    Text("Change current day outline color")
+                    Text("Change current day outline color", color = detailsTextColor)
                 }
                 Spacer(modifier = Modifier.width(16.dp))
                 Box(
@@ -372,9 +379,10 @@ class UserSettingsActivity : AppCompatActivity() {
                         saveColorPreference(BACKGROUND_COLOR_1_KEY, color.toArgb())
                     }
                 },
+                    colors = ButtonDefaults.buttonColors(baseButtonColor),
                     modifier = Modifier.weight(0.5f)
                 ) {
-                    Text("Change Background 1 Color")
+                    Text("Change Background 1 Color", color = detailsTextColor)
                 }
                 Spacer(modifier = Modifier.width(15.dp))
                 Box(
@@ -394,9 +402,10 @@ class UserSettingsActivity : AppCompatActivity() {
                         saveColorPreference(BACKGROUND_COLOR_2_KEY, color.toArgb())
                     }
                 },
-                    modifier = Modifier.weight(0.5f)
+                    modifier = Modifier.weight(0.5f),
+                    colors = ButtonDefaults.buttonColors(baseButtonColor)
                 ) {
-                    Text("Change Background 2 Color")
+                    Text("Change Background 2 Color", color = detailsTextColor)
                 }
                 Spacer(modifier = Modifier.width(15.dp))
                 Box(
@@ -416,9 +425,10 @@ class UserSettingsActivity : AppCompatActivity() {
                         saveColorPreference(TOP_BAR_COLOR_KEY, color.toArgb())
                     }
                 },
-                    modifier = Modifier.weight(0.5f)
+                    modifier = Modifier.weight(0.5f),
+                    colors = ButtonDefaults.buttonColors(baseButtonColor)
                 ) {
-                    Text("Change Top Bar Color")
+                    Text("Change Top Bar Color", color = detailsTextColor)
                 }
                 Spacer(modifier = Modifier.width(15.dp))
                 Box(
@@ -438,9 +448,10 @@ class UserSettingsActivity : AppCompatActivity() {
                         saveColorPreference(BASE_TEXT_COLOR_KEY, color.toArgb())
                     }
                 },
-                    modifier = Modifier.weight(0.5f)
+                    modifier = Modifier.weight(0.5f),
+                    colors = ButtonDefaults.buttonColors(baseButtonColor)
                 ) {
-                    Text("Change base text Color")
+                    Text("Change base text Color", color = detailsTextColor)
                 }
                 Spacer(modifier = Modifier.width(15.dp))
                 Box(
@@ -460,9 +471,10 @@ class UserSettingsActivity : AppCompatActivity() {
                         saveColorPreference(BASE_BUTTON_COLOR_KEY, color.toArgb())
                     }
                 },
-                    modifier = Modifier.weight(0.5f)
+                    modifier = Modifier.weight(0.5f),
+                    colors = ButtonDefaults.buttonColors(baseButtonColor)
                 ) {
-                    Text("Change base button Color")
+                    Text("Change base button Color", color = detailsTextColor)
                 }
                 Spacer(modifier = Modifier.width(15.dp))
                 Box(
@@ -482,9 +494,10 @@ class UserSettingsActivity : AppCompatActivity() {
                         saveColorPreference(DETAILS_TEXT_COLOR_KEY, color.toArgb())
                     }
                 },
-                    modifier = Modifier.weight(0.5f)
+                    modifier = Modifier.weight(0.5f),
+                    colors = ButtonDefaults.buttonColors(baseButtonColor)
                 ) {
-                    Text("Change details text Color")
+                    Text("Change details text Color", color = detailsTextColor)
                 }
                 Spacer(modifier = Modifier.width(15.dp))
                 Box(
@@ -504,9 +517,10 @@ class UserSettingsActivity : AppCompatActivity() {
                         saveColorPreference(DETAILS_DATE_COLOR_KEY, color.toArgb())
                     }
                 },
-                    modifier = Modifier.weight(0.5f)
+                    modifier = Modifier.weight(0.5f),
+                    colors = ButtonDefaults.buttonColors(baseButtonColor)
                 ) {
-                    Text("Change details date Color")
+                    Text("Change details date Color", color = detailsTextColor)
                 }
                 Spacer(modifier = Modifier.width(15.dp))
                 Box(
@@ -526,9 +540,10 @@ class UserSettingsActivity : AppCompatActivity() {
                         saveColorPreference(DETAILS_WAGE_COLOR_KEY, color.toArgb())
                     }
                 },
-                    modifier = Modifier.weight(0.5f)
+                    modifier = Modifier.weight(0.5f),
+                    colors = ButtonDefaults.buttonColors(baseButtonColor)
                 ) {
-                    Text("Change details wage Color")
+                    Text("Change details wage Color", color = detailsTextColor)
                 }
                 Spacer(modifier = Modifier.width(15.dp))
                 Box(
