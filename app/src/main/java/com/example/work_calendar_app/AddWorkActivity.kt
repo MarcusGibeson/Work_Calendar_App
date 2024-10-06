@@ -48,6 +48,7 @@ class AddWorkActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_add_work)
 
+
         Log.d("AddWorkActivity", "Activity created, initializing views.")
 
         //Initialize Values

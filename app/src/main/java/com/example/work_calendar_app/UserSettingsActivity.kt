@@ -37,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 
@@ -69,6 +70,7 @@ class UserSettingsActivity : AppCompatActivity() {
     private var selectedColor: ((Color) -> Unit)? = null
     private var colorKey: String? = null
 
+
     companion object {
         const val WORK_DAY_1_COLOR_KEY = "workDay1Color"
         const val WORK_DAY_2_COLOR_KEY = "workDay2Color"
@@ -98,6 +100,7 @@ class UserSettingsActivity : AppCompatActivity() {
         //Set up compose View for displaying color boxes
         val composeView = findViewById<ComposeView>(R.id.compose_view)
         composeView.setContent {
+            val context = LocalContext.current
             if (showColorPicker) {
                 ColorPickerDialog(
                     onDismissRequest = { showColorPicker = false },
@@ -139,15 +142,30 @@ class UserSettingsActivity : AppCompatActivity() {
                     )
                     Spacer (modifier = Modifier.height(16.dp))
 
-                    //Add finished button
-                    Button(
-                        onClick = {
-                            finish()
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Okay")
+                    Row {
+                        //Add Reset defaults button
+                        Button (
+                            onClick = {
+                                resetUserPreferences(context, ::updateUIState)
+                            }
+                        ) {
+                            Text("Reset default")
+                        }
+                        Spacer(modifier = Modifier.width(16.dp))
+                        //Add finished button
+                        Button(
+                            onClick = {
+                                finish()
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Okay")
+                        }
                     }
+
+
+
+
                 }
             }
         }
@@ -183,6 +201,56 @@ class UserSettingsActivity : AppCompatActivity() {
 
         //refresh color preferences
         loadColorPreferences()
+    }
+
+    private fun resetUserPreferences(context: Context, updateUIState: () -> Unit) {
+        val sharedPreferences = context.getSharedPreferences("user_preferences", Context.MODE_PRIVATE)
+        val editor = sharedPreferences.edit()
+
+        editor.clear()
+
+        editor.putInt("workDay1Color", Color.Yellow.toArgb())
+        editor.putInt("outlineColor", Color.Blue.toArgb())
+        editor.putInt("topBarColor", Color.Blue.toArgb())
+        editor.putInt("backgroundColor1", Color.White.toArgb())
+        editor.putInt("backgroundColor2", Color.White.toArgb())
+        editor.putInt("baseTextColor", Color.Black.toArgb())
+        editor.putInt("baseButtonColor", Color.Green.toArgb())
+        editor.putInt("detailsTextColor", Color.Black.toArgb())
+        editor.putInt("detailsDateColor", Color.Blue.toArgb())
+        editor.putInt("detailsWageColor", Color.Red.toArgb())
+
+        editor.apply()
+
+
+        updateUIState()
+    }
+
+    fun updateUIState() {
+        val sharedPreferences = getSharedPreferences("user_preferences", Context.MODE_PRIVATE)
+
+        val newWorkDay1Color = sharedPreferences.getInt("workDay1Color", Color.Yellow.toArgb())
+        val newOutlineColor = sharedPreferences.getInt("outlineColor", Color.Blue.toArgb())
+        val newTopBarColor = sharedPreferences.getInt("topBarColor", Color.Blue.toArgb())
+        val newBackgroundColor1 = sharedPreferences.getInt("backgroundColor1", Color.Gray.toArgb())
+        val newBackgroundColor2 = sharedPreferences.getInt("backgroundColor2", Color.White.toArgb())
+        val newBaseTextColor = sharedPreferences.getInt("baseTextColor", Color.Black.toArgb())
+        val newBaseButtonColor = sharedPreferences.getInt("baseButtonColorr", Color.Green.toArgb())
+        val newDetailsTextColor = sharedPreferences.getInt("detailsTextColor", Color.Black.toArgb())
+        val newDetailsDateColor = sharedPreferences.getInt("detailsDateColor", Color.Blue.toArgb())
+        val newDetailsWageColor = sharedPreferences.getInt("detailsWageColor", Color.Red.toArgb())
+
+        workDay1Color = Color(newWorkDay1Color)
+        outlineColor = Color(newOutlineColor)
+        topBarColor = Color(newTopBarColor)
+        backgroundColor1 = Color(newBackgroundColor1)
+        backgroundColor2 = Color(newBackgroundColor2)
+        baseTextColor = Color(newBaseTextColor)
+        baseButtonColor = Color(newBaseButtonColor)
+        detailsTextColor = Color(newDetailsTextColor)
+        detailsDateColor = Color(newDetailsDateColor)
+        detailsWageColor = Color(newDetailsWageColor)
+
     }
 
     @Composable
