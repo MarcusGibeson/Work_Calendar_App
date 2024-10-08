@@ -6,5 +6,6 @@ data class WorkDetails (
     val startTime: String,
     val endTime: String,
     val breakTime: String,
+    val tips: Double,
     val wage: Double
 )

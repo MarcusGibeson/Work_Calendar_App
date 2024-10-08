@@ -4,122 +4,202 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@drawable/background_gradient"
+    android:id="@+id/rootLayout"
     android:padding="10dp">
 
-    <Spinner
-        android:id="@+id/savedScheduleSpinner"
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
+        android:layout_height="0dp"
+        android:layout_weight="1">
 
-<!--Date-->
-    <TextView
-        android:text="Work Date"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        />
-    <EditText
-        android:id="@+id/workDate"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:focusable="false"
-        android:clickable="true"
-        android:hint="Select date"
-        />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
 
-<!--Start Time-->
-    <TextView
-        android:text="Start Time"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        />
-    <EditText
-        android:id="@+id/startTime"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:focusable="false"
-        android:clickable="true"
-        android:hint="Select start time"
-        />
+            <Spinner
+                android:id="@+id/savedScheduleSpinner"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
 
-<!--    End Time-->
-    <TextView
-        android:text="End Time"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        />
-    <EditText
-        android:id="@+id/endTime"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:focusable="false"
-        android:clickable="true"
-        android:hint="Select end time"
-        />
+            <!--Date-->
+            <TextView
+                android:text="Work Date"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                />
+            <EditText
+                android:id="@+id/workDate"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:focusable="false"
+                android:clickable="true"
+                android:hint="Select date"
+                />
 
-<!--Break Time-->
-    <TextView
-        android:text="Break Time (Minutes)"
-        android:layout_height="wrap_content"
-        android:layout_width="wrap_content"
-        />
-    <EditText
-        android:id="@+id/breakTime"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:inputType="number"
-        android:hint="Break time (in minutes)"
-        />
+            <!--Start Time-->
+            <TextView
+                android:text="Start Time"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                />
+            <EditText
+                android:id="@+id/startTime"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:focusable="false"
+                android:clickable="true"
+                android:hint="Select start time"
+                />
 
-<!--    Pay Type-->
-    <TextView
-        android:text="Pay Type"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        />
-    <Spinner
-        android:id="@+id/payTypeSpinner"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:entries="@array/pay_type"
-        />
+            <!--    End Time-->
+            <TextView
+                android:text="End Time"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                />
+            <EditText
+                android:id="@+id/endTime"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:focusable="false"
+                android:clickable="true"
+                android:hint="Select end time"
+                />
 
-<!--    Hourly Rate-->
-    <TextView
-        android:text="Hourly Rate/Commision"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        />
-    <EditText
-        android:id="@+id/payRate"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:inputType="numberDecimal"
-        />
+            <!--Break Time-->
+            <TextView
+                android:text="Break Time (Minutes)"
+                android:layout_height="wrap_content"
+                android:layout_width="wrap_content"
+                />
+            <EditText
+                android:id="@+id/breakTime"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="number"
+                android:hint="Break time (in minutes)"
+                />
 
-<!--    Overtime Rate-->
-    <TextView
-        android:text="Overtime Pay"
-        android:layout_height="wrap_content"
-        android:layout_width="wrap_content"
-        />
+            <!--    Pay Type-->
+            <TextView
+                android:text="Pay Type"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                />
+            <Spinner
+                android:id="@+id/payTypeSpinner"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:entries="@array/pay_type"
+                />
 
-    <EditText
-        android:id="@+id/overtimePay"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Overtime Pay"
-        android:inputType="numberDecimal" />
+            <!--    Hourly Rate-->
+            <TextView
+                android:id="@+id/payRateText"
+                android:text="Hourly Rate/Commision"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                />
+            <EditText
+                android:id="@+id/payRate"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="numberDecimal"
+                />
+
+            <!--    Overtime Rate-->
+            <TextView
+                android:id="@+id/overtimePayText"
+                android:text="Overtime Pay"
+                android:layout_height="wrap_content"
+                android:layout_width="wrap_content"
+                />
+
+            <EditText
+                android:id="@+id/overtimePay"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Overtime Pay"
+                android:inputType="numberDecimal" />
+
+            <!--    Commission Rate-->
+            <TextView
+                android:id="@+id/commissionRateText"
+                android:text="Commision Rate"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+            <EditText
+                android:id="@+id/commissionRate"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Commission rate %"
+                android:inputType="number" />
+
+            <!--    Commission Details-->
+            <TextView
+                android:id="@+id/commissionDetailText"
+                android:text="Sales made"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+
+            <EditText
+                android:id="@+id/commissionDetail"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Sale amount"
+                android:inputType="numberDecimal" />
+
+            <ImageButton
+                android:id="@+id/addCommissionDetailButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/add_activity_plus"
+                android:contentDescription="Add new sale" />
+
+            <!--    Salary Amount-->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/commissionDetailsRecyclerView"
+                android:layout_width="match_parent"
+                android:layout_height="72dp" />
+
+            <TextView
+                android:id="@+id/salaryAmountText"
+                android:text="Salary Amount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+
+            <EditText
+                android:id="@+id/salaryAmount"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Yearly salary"
+                android:inputType="number" />
+
+
+            <TextView
+                android:text="Tips Earned"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+
+            <EditText
+                android:id="@+id/tips"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Tips earned"
+                android:inputType="numberDecimal"
+                android:text="0.00"/>
+
+        </LinearLayout>
+    </ScrollView>
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="209dp"
+        android:layout_height="80dp"
         android:dividerPadding="20dp"
         android:orientation="horizontal">
+
         <!--    Save Button-->
-
-        <!--    Save Schedule Button-->
-
         <Button
             android:id="@+id/btnSave"
             android:layout_width="wrap_content"
@@ -127,12 +207,14 @@
             android:layout_marginRight="30dp"
             android:text="Submit new date" />
 
+        <!--    Save Schedule Button-->
         <Button
             android:id="@+id/saveScheduleButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginLeft="30dp"
             android:text="Save schedule for later" />
+
     </LinearLayout>
 
     <Button

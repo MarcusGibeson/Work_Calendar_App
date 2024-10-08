@@ -2,7 +2,7 @@
     <string name="app_name">Work_Calendar_App</string>
     <string-array name="pay_type">
         <item>Hourly</item>
-        <item>Commision</item>
-        <item>Tip</item>
+        <item>Salary</item>
+        <item>Commission</item>
     </string-array>
 </resources>

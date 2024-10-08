@@ -9,5 +9,10 @@ data class WorkEntry(
     val payType: String,
     val payRate: Double,
     val overtimeRate: Double,
+    val commissionRate: Int,
+    val commissionDetails: List<Double>,
+    val totalCommissionAmount: Double,
+    val salaryAmount: Double,
+    val tips: Double,
     val netEarnings: Double
 )

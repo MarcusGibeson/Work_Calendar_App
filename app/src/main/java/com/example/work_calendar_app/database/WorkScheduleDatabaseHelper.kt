@@ -27,6 +27,11 @@ class WorkScheduleDatabaseHelper(context: Context) : SQLiteOpenHelper(context, D
         private const val COLUMN_PAY_TYPE = "pay_type"
         private const val COLUMN_PAY_RATE = "pay_rate"
         private const val COLUMN_OVERTIME_RATE = "overtime_rate"
+        private const val COLUMN_TIPS = "tips"
+        private const val COLUMN_COMMISSION_RATE = "commission_rate"
+        private const val COLUMN_COMMISSION_DETAILS = "commission_details"
+        private const val COLUMN_TOTAL_COMMISSION_SALES = "total_commission_sales"
+        private const val COLUMN_SALARY_AMOUNT = "salary_amount"
         private const val COLUMN_TOTAL_EARNINGS = "total_earnings"
     }
 
@@ -42,6 +47,11 @@ class WorkScheduleDatabaseHelper(context: Context) : SQLiteOpenHelper(context, D
                 "$COLUMN_PAY_TYPE TEXT, " +
                 "$COLUMN_PAY_RATE REAL, " +
                 "$COLUMN_OVERTIME_RATE REAL, " +
+                "$COLUMN_COMMISSION_RATE REAL, " +
+                "$COLUMN_COMMISSION_DETAILS TEXT, " +
+                "$COLUMN_TOTAL_COMMISSION_SALES REAL, " +
+                "$COLUMN_SALARY_AMOUNT REAL, " +
+                "$COLUMN_TIPS REAL, " +
                 "$COLUMN_TOTAL_EARNINGS REAL )")
         db?.execSQL(createTableQuery)
 
@@ -54,6 +64,10 @@ class WorkScheduleDatabaseHelper(context: Context) : SQLiteOpenHelper(context, D
                 "$COLUMN_PAY_TYPE TEXT, " +
                 "$COLUMN_PAY_RATE REAL, " +
                 "$COLUMN_OVERTIME_RATE REAL, " +
+                "$COLUMN_COMMISSION_RATE REAL, " +
+                "$COLUMN_COMMISSION_DETAILS TEXT, " +
+                "$COLUMN_TOTAL_COMMISSION_SALES INT, " +
+                "$COLUMN_SALARY_AMOUNT REAL, " +
                 "$COLUMN_TOTAL_EARNINGS REAL )")
         db?.execSQL(createSecondTableQuery)
     }
@@ -68,13 +82,18 @@ class WorkScheduleDatabaseHelper(context: Context) : SQLiteOpenHelper(context, D
         return regex.matches(date)
     }
 
-    fun insertWorkSchedule(id: Long?, date: String, startTime: String, endTime: String, breakMinutes: Int, payType: String, payRate: Double, overtimeRate: Double, totalEarnings: Double): Boolean {
+    fun insertWorkSchedule(id: Long?, date: String, startTime: String, endTime: String, breakMinutes: Int, payType: String, payRate: Double, overtimeRate: Double, commissionRate: Int, commissionDetails: List<Double>, salaryAmount: Double, tips: Double, totalEarnings: Double): Boolean {
         val db = this.writableDatabase
         val sdf = SimpleDateFormat("yyyy/MM/dd", Locale.getDefault())
         var formattedDate: String? = null
         if (!isValidDateFormat(date)) {
             formattedDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(sdf.parse(date))
         }
+        val commissionDetailsCSV = commissionDetails.joinToString(separator = ", ")
+
+        val totalCommissionSales = generateCommissionTotal(commissionRate, commissionDetailsCSV)
+
+        val dailySalary = salaryAmount / 365 //rough daily estimate
 
 
         // Log all the information being submitted
@@ -90,6 +109,11 @@ class WorkScheduleDatabaseHelper(context: Context) : SQLiteOpenHelper(context, D
         Log.d("Database-insertWorkSchedule", "Pay Type: $payType")
         Log.d("Database-insertWorkSchedule", "Pay Rate: $payRate")
         Log.d("Database-insertWorkSchedule", "Overtime Rate: $overtimeRate")
+        Log.d("Database-insertWorkSchedule", "Commission Rate: $commissionRate")
+        Log.d("Database-insertWorkSchedule", "Commission Details: $commissionDetailsCSV")
+        Log.d("Database-insertWorkSchedule", "Total Commission Sales: $totalCommissionSales")
+        Log.d("Database-insertWorkSchedule", "Daily Salary Amount: $dailySalary")
+        Log.d("Database-insertWorkSchedule", "Tips: $tips")
         Log.d("Database-insertWorkSchedule", "Total Earnings: $totalEarnings")
 
         val values = ContentValues().apply {
@@ -100,6 +124,11 @@ class WorkScheduleDatabaseHelper(context: Context) : SQLiteOpenHelper(context, D
             put(COLUMN_PAY_TYPE, payType)
             put(COLUMN_PAY_RATE, payRate)
             put(COLUMN_OVERTIME_RATE, overtimeRate)
+            put(COLUMN_COMMISSION_RATE, commissionRate)
+            put(COLUMN_COMMISSION_DETAILS, commissionDetailsCSV)
+            put(COLUMN_TOTAL_COMMISSION_SALES, totalCommissionSales)
+            put(COLUMN_SALARY_AMOUNT, dailySalary)
+            put(COLUMN_TIPS, tips)
             put(COLUMN_TOTAL_EARNINGS, totalEarnings)
         }
         return try {
@@ -134,8 +163,12 @@ class WorkScheduleDatabaseHelper(context: Context) : SQLiteOpenHelper(context, D
         }
     }
 
-    fun insertSavedSchedule(name: String, startTime: String, endTime: String, breakTime: Int, payType: String, hourlyRate: Double, overtimeRate: Double) {
+    fun insertSavedSchedule(name: String, startTime: String, endTime: String, breakTime: Int, payType: String, hourlyRate: Double, overtimeRate: Double, commissionRate: Int, salaryAmount: Double) {
         val db = writableDatabase
+
+        val dailySalary = salaryAmount / 365 //rough daily estimate
+        val formattedDailySalary = String.format("%.2f", dailySalary).toDouble()
+
         val values = ContentValues().apply {
             put(COLUMN_SCHEDULE_NAME, name)
             put(COLUMN_START_TIME, startTime)
@@ -144,6 +177,8 @@ class WorkScheduleDatabaseHelper(context: Context) : SQLiteOpenHelper(context, D
             put(COLUMN_PAY_TYPE, payType)
             put(COLUMN_PAY_RATE, hourlyRate)
             put(COLUMN_OVERTIME_RATE, overtimeRate)
+            put(COLUMN_COMMISSION_RATE, commissionRate)
+            put(COLUMN_SALARY_AMOUNT, formattedDailySalary)
         }
         db.insert("saved_schedules", null, values)
         Log.d("Database-insertSavedSchedule", "Schedule save: $name")
@@ -193,10 +228,15 @@ class WorkScheduleDatabaseHelper(context: Context) : SQLiteOpenHelper(context, D
                 val payType = cursor.getString(cursor.getColumnIndexOrThrow("pay_type"))
                 val payRate = cursor.getDouble(cursor.getColumnIndexOrThrow("pay_rate"))
                 val overtimeRate = cursor.getDouble(cursor.getColumnIndexOrThrow("overtime_rate"))
+                val commissionRate = cursor.getInt(cursor.getColumnIndexOrThrow("commission_rate"))
+                val commissionDetails = cursor.getString(cursor.getColumnIndexOrThrow("commission_details"))
+                val totalCommissionSales = cursor.getDouble(cursor.getColumnIndexOrThrow("total_commission_sales"))
+                val salaryAmount = cursor.getDouble(cursor.getColumnIndexOrThrow("salary_amount"))
+                val tips = cursor.getDouble(cursor.getColumnIndexOrThrow("tips"))
                 val netEarnings = cursor.getDouble(cursor.getColumnIndexOrThrow("total_earnings"))
 
                 // Log each column in the current row
-                Log.d("DatabaseHelper-getWorkScheduleBetweenDates", "Row: ID: $id, WorkDate: $workDate, StartTime: $startTime, EndTime: $endTime, BreakTime: $breakTime, PayType: $payType, PayRate: $payRate, OvertimeRate: $overtimeRate, NetEarnings: $netEarnings")
+                Log.d("DatabaseHelper-getWorkScheduleBetweenDates", "Row: ID: $id, WorkDate: $workDate, StartTime: $startTime, EndTime: $endTime, BreakTime: $breakTime, PayType: $payType, PayRate: $payRate, OvertimeRate: $overtimeRate, CommissionRate: $commissionRate, CommissionDetails: $commissionDetails, TotalCommissionSales: $totalCommissionSales, SalaryAmount: $salaryAmount, Tips: $tips, NetEarnings: $netEarnings")
 
             } while (cursor.moveToNext())
         } else {
@@ -211,5 +251,15 @@ class WorkScheduleDatabaseHelper(context: Context) : SQLiteOpenHelper(context, D
     fun getAllSavedSchedules(): Cursor {
         val db = this.readableDatabase
         return db.rawQuery("SELECT * FROM saved_schedules", null)
+    }
+
+    fun generateCommissionTotal(commissionRate: Int, commissionDetailsCSV: String): Float {
+        //Split CSV
+        val salesList = commissionDetailsCSV.split(",")
+        val totalSales = salesList.map { it.toFloatOrNull() ?: 0f }.sum()
+
+        val totalCommission = totalSales * (commissionRate / 100)
+
+        return totalCommission
     }
 }

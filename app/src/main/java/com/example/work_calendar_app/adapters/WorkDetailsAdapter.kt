@@ -15,6 +15,7 @@ class WorkDetailsAdapter(private var workDetailsList: MutableList<WorkDetails>) 
         val workDateTextView: TextView = itemView.findViewById<TextView>(R.id.work_date)
         val startTimeTextView: TextView = itemView.findViewById<TextView>(R.id.start_time)
         val endTimeTextView: TextView = itemView.findViewById<TextView>(R.id.end_time)
+
         val wageTextView: TextView = itemView.findViewById<TextView>(R.id.wage_text)
     }
 
@@ -32,6 +33,7 @@ class WorkDetailsAdapter(private var workDetailsList: MutableList<WorkDetails>) 
         holder.workDateTextView.text = workDetail.workDate
         holder.startTimeTextView.text = workDetail.startTime
         holder.endTimeTextView.text = workDetail.endTime
+        holder.endTimeTextView.text = workDetail.tips.toString()
         holder.wageTextView.text = workDetail.wage.toString()
     }
 
