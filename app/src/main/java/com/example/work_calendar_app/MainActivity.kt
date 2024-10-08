@@ -46,6 +46,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -738,11 +739,12 @@ class MainActivity : AppCompatActivity() {
 
             //Create a Localdate for the current year, current month, and specific day
             val workDateLocal = LocalDate.parse(workEntry.workDate, DateTimeFormatter.ofPattern("yyyy-MM-dd"))
-
+            val formattedWorkDate = workDateLocal.format(DateTimeFormatter.ofPattern("MMM dd, yyyy"))
             Log.d("WorkDetailsList", "Valid workEntry: ID: $id, Date: $workDateLocal")
+            Log.d("WorkDetailsList", "Verifying date: ID: $id, Date: $formattedWorkDate")
                 WorkDetails(
                     id = workEntry.id,
-                    workDate = workDateLocal.format(DateTimeFormatter.ofPattern("MMM dd, yyyy")),
+                    workDate = formattedWorkDate,
                     startTime = workEntry.startTime,
                     endTime = workEntry.endTime,
                     breakTime = workEntry.breakTime.toString(),
@@ -918,12 +920,19 @@ class MainActivity : AppCompatActivity() {
                                 )
                             }
                             "Salary" -> {
+                                var salaryInput by remember { mutableStateOf((salaryAmount * 365).toString()) }
+
                                 TextField(
-                                    value = salaryAmount.toString(),
-                                    onValueChange = {
-                                        val newValue = it.toDoubleOrNull()
-                                        if (newValue != null) {
-                                            salaryAmount = newValue
+                                    value = salaryInput,
+                                    onValueChange = { newValue ->
+                                        val parsedValue = newValue.toDoubleOrNull()
+
+                                        if (parsedValue != null) {
+                                            salaryInput = newValue
+
+                                            salaryAmount = String.format("%.2f", parsedValue / 365).toDouble()
+                                        } else {
+                                            salaryInput = newValue
                                         }
                                     },
                                     label = { Text ("Yearly Salary")}
@@ -953,8 +962,23 @@ class MainActivity : AppCompatActivity() {
                                                     }
                                                 }
                                             },
-                                            label = { Text("Sale amount")}
+                                            label = { Text("Sale amount") },
+                                            modifier = Modifier.weight(1f)
                                         )
+
+                                        //Delete button
+                                        IconButton(
+                                            onClick = {
+                                                val index = commissionDetails.indexOf(detail)
+                                                if (index != -1) {
+                                                    commissionDetails = commissionDetails.toMutableList().apply {
+                                                        removeAt(index)
+                                                    }
+                                                }
+                                            }
+                                        ) {
+                                            Icon(Icons.Default.Delete, contentDescription = "Delete Sale")
+                                        }
                                     }
                                 }
 
@@ -972,8 +996,24 @@ class MainActivity : AppCompatActivity() {
                         Text(text = "End Time: $endTime")
                         Text(text = "Break Time: $breakTime minutes")
                         Text(text = "Pay Type: $payType")
-                        Text(text = "Pay Rate: $payRate")
-                        Text(text = "Overtime Rate: $overtimeRate")
+                        when (payType) {
+                            "Hourly" -> {
+                                Text(text = "Pay Rate: $payRate")
+                                Text(text = "Overtime Rate: $overtimeRate")
+                            }
+                            "Salary" -> {
+                                val formattedSalaryAmount = String.format("%.2f", salaryAmount).toDouble()
+                                val formattedSalaryTotal = String.format("%.2f", salaryAmount * 365).toDouble()
+                                Text(text = "Total salary: $formattedSalaryTotal")
+                                Text(text = "Amount earned today: $formattedSalaryAmount")
+                            }
+                            "Commission" -> {
+                                Text(text = "Commission rate: $commissionRate")
+                                Text(text = "Sale totals: $commissionDetails")
+                            }
+                        }
+
+
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))

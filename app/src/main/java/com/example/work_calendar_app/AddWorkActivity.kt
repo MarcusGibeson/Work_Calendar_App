@@ -272,12 +272,15 @@ class AddWorkActivity : AppCompatActivity() {
         val workHours = calculateHoursWorked(startTime, endTime) - (breakTime / 60)
         val overtimeHours = getOvertimeHours(workHours)
         val totalHourlyEarnings = (workHours * hourlyRate) + (overtimeHours * overtimePay)
+        val formattedTotalHourlyEarnings = String.format("%.2f", totalHourlyEarnings).toDouble()
 
         val commissionDetailsCSV = commissionDetails.joinToString(separator = ", ")
         val commissionTotal = generateCommissionTotal(commissionRate, commissionDetailsCSV)
-        val dailySalary = salaryAmount / 365
+        val formattedCommissionTotal = String.format("%.2f", commissionTotal).toDouble()
 
-        val totalEarnings = (totalHourlyEarnings + commissionTotal) + dailySalary + tips
+        val formattedSalaryAmount = String.format("%.2f", salaryAmount / 365).toDouble()
+
+        val totalEarnings = (formattedTotalHourlyEarnings + formattedCommissionTotal) + formattedSalaryAmount + tips
 
 
 

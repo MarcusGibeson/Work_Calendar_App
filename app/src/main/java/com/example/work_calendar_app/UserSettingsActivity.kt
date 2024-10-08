@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
@@ -31,6 +32,7 @@ import androidx.compose.material3.SliderDefaults
 
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -45,9 +47,12 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import com.example.work_calendar_app.database.WorkScheduleDatabaseHelper
 
 
 class UserSettingsActivity : AppCompatActivity() {
+
+    private lateinit var dbHelper: WorkScheduleDatabaseHelper
 
     //State variables for colors
     //Calendar
@@ -108,6 +113,8 @@ class UserSettingsActivity : AppCompatActivity() {
         val composeView = findViewById<ComposeView>(R.id.compose_view)
         composeView.setContent {
             val context = LocalContext.current
+            var showDialog by remember { mutableStateOf(false) }
+
             if (showColorPicker) {
                 ColorPickerDialog(
                     onDismissRequest = { showColorPicker = false },
@@ -148,35 +155,99 @@ class UserSettingsActivity : AppCompatActivity() {
 
                     )
                     Spacer (modifier = Modifier.height(16.dp))
-
-                    Row {
-                        //Add Reset defaults button
-                        Button (
-                            onClick = {
-                                resetUserPreferences(context, ::updateUIState)
-                            },
-                            colors = ButtonDefaults.buttonColors(baseButtonColor)
-                        ) {
-                            Text("Reset default", color = detailsTextColor)
+                    Column {
+                        Row {
+                            //Add Reset defaults button
+                            Button (
+                                onClick = {
+                                    resetUserPreferences(context, ::updateUIState)
+                                },
+                                colors = ButtonDefaults.buttonColors(baseButtonColor)
+                            ) {
+                                Text("Reset default", color = detailsTextColor)
+                            }
+                            Spacer(modifier = Modifier.width(16.dp))
+                            //Add finished button
+                            Button(
+                                onClick = {
+                                    finish()
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.buttonColors(baseButtonColor)
+                            ) {
+                                Text("Okay", color = detailsTextColor)
+                            }
                         }
-                        Spacer(modifier = Modifier.width(16.dp))
-                        //Add finished button
-                        Button(
-                            onClick = {
-                                finish()
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(baseButtonColor)
-                        ) {
-                            Text("Okay", color = detailsTextColor)
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        //Reset database
+                        Row (horizontalArrangement = Arrangement.Center) {
+                            Button(
+                                onClick = { showDialog = true },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.buttonColors(baseButtonColor)
+                            ) {
+                                Text("Clear database)")
+                            }
+
+                            if (showDialog) {
+                                ConfirmClearDatabaseDialog(
+                                    onConfirm = {
+                                        clearDatabase(context)
+                                        showDialog = false
+                                    },
+                                    onDismiss = { showDialog = false }
+                                )
+                            }
                         }
                     }
-
-
-
-
                 }
             }
+        }
+    }
+
+    @Composable
+    fun ConfirmClearDatabaseDialog(
+        onConfirm: () -> Unit,
+        onDismiss: () -> Unit
+    ) {
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            title = { Text("Confirm Action") },
+            text = { Text("Are you sure you want to clear the database? This action cannot be reversed.") },
+            confirmButton = {
+                TextButton(
+                    onClick = onConfirm
+                ) {
+                    Text("Yes")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = onDismiss
+                ) {
+                    Text("No")
+                }
+            }
+        )
+    }
+
+
+    private fun clearDatabase(context: Context) {
+
+        val dbHelper = WorkScheduleDatabaseHelper(context)
+        val database = dbHelper.writableDatabase
+
+        database.beginTransaction()
+        try{
+            database.execSQL("DELETE FROM work_schedule")
+            database.execSQL("DELETE FROM saved_schedules")
+
+            database.setTransactionSuccessful()
+        } finally {
+            database.endTransaction()
+            database.close()
         }
     }
 
@@ -656,25 +727,26 @@ class UserSettingsActivity : AppCompatActivity() {
 
                         //Select and Cancel buttons
                         Row (
-                            horizontalArrangement = Arrangement.SpaceEvenly,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Button(onClick = { onDismissRequest() },
-                                colors = ButtonDefaults.buttonColors(baseButtonColor)
+                                horizontalArrangement = Arrangement.SpaceEvenly,
+                                modifier = Modifier.fillMaxWidth()
                             ) {
-                                Text("Cancel")
+                                Button(onClick = { onDismissRequest() },
+                                    colors = ButtonDefaults.buttonColors(baseButtonColor)
+                                ) {
+                                    Text("Cancel")
+                                }
+                                Button(onClick = {
+                                    //Pass the selected color via the callback
+                                    val selectedColor = Color(red, green, blue)
+                                    onColorSelected(selectedColor)
+                                    onDismissRequest()
+                                },
+                                    colors = ButtonDefaults.buttonColors(baseButtonColor)
+                                ) {
+                                    Text("Select")
+                                }
                             }
-                            Button(onClick = {
-                                //Pass the selected color via the callback
-                                val selectedColor = Color(red, green, blue)
-                                onColorSelected(selectedColor)
-                                onDismissRequest()
-                            },
-                                colors = ButtonDefaults.buttonColors(baseButtonColor)
-                            ) {
-                                Text("Select")
-                            }
-                        }
+
                     }
                 }
 
