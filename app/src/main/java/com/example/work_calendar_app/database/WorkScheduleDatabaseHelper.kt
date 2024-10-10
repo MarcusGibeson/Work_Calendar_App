@@ -166,8 +166,9 @@ class WorkScheduleDatabaseHelper(context: Context) : SQLiteOpenHelper(context, D
     fun insertSavedSchedule(name: String, startTime: String, endTime: String, breakTime: Int, payType: String, hourlyRate: Double, overtimeRate: Double, commissionRate: Int, salaryAmount: Double) {
         val db = writableDatabase
 
-        val dailySalary = salaryAmount / 365 //rough daily estimate
-        val formattedDailySalary = String.format("%.2f", dailySalary).toDouble()
+        Log.d("Database-insertSavedSchedule", "Salary Amount received for database insertion: $salaryAmount")
+//        val dailySalary = salaryAmount / 365 //rough daily estimate
+//        val formattedDailySalary = String.format("%.2f", dailySalary).toDouble()
 
         val values = ContentValues().apply {
             put(COLUMN_SCHEDULE_NAME, name)
@@ -178,7 +179,7 @@ class WorkScheduleDatabaseHelper(context: Context) : SQLiteOpenHelper(context, D
             put(COLUMN_PAY_RATE, hourlyRate)
             put(COLUMN_OVERTIME_RATE, overtimeRate)
             put(COLUMN_COMMISSION_RATE, commissionRate)
-            put(COLUMN_SALARY_AMOUNT, formattedDailySalary)
+            put(COLUMN_SALARY_AMOUNT, salaryAmount)
         }
         db.insert("saved_schedules", null, values)
         Log.d("Database-insertSavedSchedule", "Schedule save: $name")

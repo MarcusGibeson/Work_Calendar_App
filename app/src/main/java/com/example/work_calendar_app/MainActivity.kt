@@ -692,6 +692,9 @@ class MainActivity : AppCompatActivity() {
 
         //Function to update the workEntries when saving a new or modified entry
         val onSaveEntry: (WorkEntry) -> Unit ={ updatedEntry ->
+            //Convert yearly salary to daily salary when saving
+//            updatedEntry.salaryAmount = yearlySalaryInput.toDoubleOrNull()?.div(365) ?: 0.0
+
             Log.d("onSave", "updatedEntry.id: ${updatedEntry.id}")
             Log.d("onSave", "updatedEntry.workDate: ${updatedEntry.workDate}")
             Log.d("onSave", "updatedEntry.startTime: ${updatedEntry.startTime}")
@@ -700,6 +703,9 @@ class MainActivity : AppCompatActivity() {
             Log.d("onSave", "updatedEntry.payType: ${updatedEntry.payType}")
             Log.d("onSave", "updatedEntry.payRate: ${updatedEntry.payRate}")
             Log.d("onSave", "updatedEntry.overtimeRate: ${updatedEntry.overtimeRate}")
+            Log.d("onSave", "updatedEntry.salaryAmount: ${updatedEntry.salaryAmount}")
+            Log.d("onSave", "updatedEntry.commissionRate: ${updatedEntry.commissionRate}")
+            Log.d("onSave", "updatedEntry.commissionDetails: ${updatedEntry.commissionDetails}")
             Log.d("onSave", "updatedEntry.tips: ${updatedEntry.tips}")
             Log.d("onSave", "updatedEntry.netEarnings: ${updatedEntry.netEarnings}")
             val isSuccess = dbHelper.insertWorkSchedule(updatedEntry.id, updatedEntry.workDate, updatedEntry.startTime, updatedEntry.endTime, updatedEntry.breakTime, updatedEntry.payType, updatedEntry.payRate,updatedEntry.overtimeRate, updatedEntry.commissionRate, updatedEntry.commissionDetails, updatedEntry.salaryAmount, updatedEntry.tips, updatedEntry.netEarnings)
@@ -920,19 +926,26 @@ class MainActivity : AppCompatActivity() {
                                 )
                             }
                             "Salary" -> {
-                                var salaryInput by remember { mutableStateOf((salaryAmount * 365).toString()) }
+                                var yearlySalaryInput by remember { mutableStateOf((salaryAmount * 365).toString()) }
+
+                                //Log initial salaryInput and salaryAmount
+                                Log.d("Details-Edit:Salary", "Initial yearly salary: $yearlySalaryInput")
+                                Log.d("Details-Edit:Salary", "Initial daily salary: $salaryAmount")
 
                                 TextField(
-                                    value = salaryInput,
+                                    value = yearlySalaryInput,
                                     onValueChange = { newValue ->
                                         val parsedValue = newValue.toDoubleOrNull()
 
                                         if (parsedValue != null) {
-                                            salaryInput = newValue
+                                            yearlySalaryInput = newValue
 
-                                            salaryAmount = String.format("%.2f", parsedValue / 365).toDouble()
+//                                            salaryAmount = parsedValue / 365
+                                            //Log when salaryInput and salaryAmount change
+                                            Log.d("Details-Edit:Salary", "Updated yearly salary input: $yearlySalaryInput")
+                                            Log.d("Details-Edit:Salary", "Calculated daily salary: $salaryAmount")
                                         } else {
-                                            salaryInput = newValue
+                                            yearlySalaryInput = newValue
                                         }
                                     },
                                     label = { Text ("Yearly Salary")}
