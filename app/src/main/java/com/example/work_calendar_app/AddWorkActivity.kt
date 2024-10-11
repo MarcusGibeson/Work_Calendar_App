@@ -230,12 +230,12 @@ class AddWorkActivity : AppCompatActivity() {
             val salaryAmount = salaryAmount.text.toString().toDoubleOrNull() ?: 0.0
             val tips = tips.text.toString().toDoubleOrNull() ?: 0.0
 
-            val totalEarnings = calculateTotalEarnings(payRate, startTime, endTime, breakTime, overtimePay, commissionRate, commissionDetails, salaryAmount, tips)
 
-            Log.d("AddWorkActivity", "Saving Work Schedule: Date: $workDate, Start time: $startTime, End time: $endTime, Break Time: $breakTime, Pay Type: $payType, Hourly Rate: $payRate, Overtime Pay: $overtimePay, Commission Rate: $commissionRate, Commission Details: $commissionDetails, Salary Amount: $salaryAmount, Tips: $tips, Total Earnings: $totalEarnings ")
+
+            Log.d("AddWorkActivity", "Saving Work Schedule: Date: $workDate, Start time: $startTime, End time: $endTime, Break Time: $breakTime, Pay Type: $payType, Hourly Rate: $payRate, Overtime Pay: $overtimePay, Commission Rate: $commissionRate, Commission Details: $commissionDetails, Salary Amount: $salaryAmount, Tips: $tips")
             //Insert into database
             val dbHelper = WorkScheduleDatabaseHelper(this)
-            dbHelper.insertWorkSchedule(null, workDate, startTime, endTime, breakTime, payType, payRate, overtimePay, commissionRate, commissionDetails, salaryAmount, tips, totalEarnings)
+            dbHelper.insertWorkSchedule(null, workDate, startTime, endTime, breakTime, payType, payRate, overtimePay, commissionRate, commissionDetails, salaryAmount, tips)
 
             Toast.makeText(this, "Work schedule added successfully!", Toast.LENGTH_SHORT).show()
             setResult(RESULT_OK)
@@ -267,45 +267,9 @@ class AddWorkActivity : AppCompatActivity() {
         }
     }
 
-    private fun calculateTotalEarnings(hourlyRate: Double, startTime: String, endTime: String, breakTime: Int, overtimePay: Double, commissionRate: Int, commissionDetails: List<Double>, salaryAmount: Double, tips: Double): Double {
-        //Logic to calculate total earnings, including break time and overtime
-        val workHours = calculateHoursWorked(startTime, endTime) - (breakTime / 60)
-        val overtimeHours = getOvertimeHours(workHours)
-        val totalHourlyEarnings = (workHours * hourlyRate) + (overtimeHours * overtimePay)
-        val formattedTotalHourlyEarnings = String.format("%.2f", totalHourlyEarnings).toDouble()
-
-        val commissionDetailsCSV = commissionDetails.joinToString(separator = ", ")
-        val commissionTotal = generateCommissionTotal(commissionRate, commissionDetailsCSV)
-        val formattedCommissionTotal = String.format("%.2f", commissionTotal).toDouble()
-
-        val formattedSalaryAmount = String.format("%.2f", salaryAmount / 365).toDouble()
-
-        val totalEarnings = (formattedTotalHourlyEarnings + formattedCommissionTotal) + formattedSalaryAmount + tips
 
 
 
-        Log.d("Add Work Activity", "Calculated Total Earnings: $totalEarnings (Work Hours: $workHours, Overtime hours: $overtimeHours)")
-        return totalEarnings
-    }
-
-    //Function to calculate hours worked
-    private fun calculateHoursWorked(startTime: String, endTime: String): Double {
-        val timeFormatter = DateTimeFormatter.ofPattern("hh:mm a")
-
-        val start = LocalTime.parse(startTime, timeFormatter)
-        val end = LocalTime.parse(endTime, timeFormatter)
-
-        var duration = Duration.between(start, end)
-
-        //for overnight shifts
-        if (duration.isNegative) {
-            duration = duration.plusHours(24)
-        }
-
-        val hoursWorked = duration.toMinutes() / 60.0
-        Log.d("AddWorkActivity", "Calculated hours worked: $hoursWorked (Start: $startTime, End: $endTime)")
-        return hoursWorked
-    }
 
     private fun generateCommissionTotal(commissionRate: Int, commissionDetailsCSV: String): Float {
         //Split CSV
@@ -320,10 +284,7 @@ class AddWorkActivity : AppCompatActivity() {
         return totalCommission
     }
 
-    private fun getOvertimeHours(workHours: Double): Double {
-        val standardHours = 8.0
-        return if (workHours > standardHours) workHours - standardHours else 0.0
-    }
+
 
     //Spinner to pick a saved schedule
     private fun loadSavedSchedulesIntoSpinner() {

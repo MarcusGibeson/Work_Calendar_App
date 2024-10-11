@@ -692,8 +692,6 @@ class MainActivity : AppCompatActivity() {
 
         //Function to update the workEntries when saving a new or modified entry
         val onSaveEntry: (WorkEntry) -> Unit ={ updatedEntry ->
-            //Convert yearly salary to daily salary when saving
-//            updatedEntry.salaryAmount = yearlySalaryInput.toDoubleOrNull()?.div(365) ?: 0.0
 
             Log.d("onSave", "updatedEntry.id: ${updatedEntry.id}")
             Log.d("onSave", "updatedEntry.workDate: ${updatedEntry.workDate}")
@@ -707,8 +705,7 @@ class MainActivity : AppCompatActivity() {
             Log.d("onSave", "updatedEntry.commissionRate: ${updatedEntry.commissionRate}")
             Log.d("onSave", "updatedEntry.commissionDetails: ${updatedEntry.commissionDetails}")
             Log.d("onSave", "updatedEntry.tips: ${updatedEntry.tips}")
-            Log.d("onSave", "updatedEntry.netEarnings: ${updatedEntry.netEarnings}")
-            val isSuccess = dbHelper.insertWorkSchedule(updatedEntry.id, updatedEntry.workDate, updatedEntry.startTime, updatedEntry.endTime, updatedEntry.breakTime, updatedEntry.payType, updatedEntry.payRate,updatedEntry.overtimeRate, updatedEntry.commissionRate, updatedEntry.commissionDetails, updatedEntry.salaryAmount, updatedEntry.tips, updatedEntry.netEarnings)
+            val isSuccess = dbHelper.insertWorkSchedule(updatedEntry.id, updatedEntry.workDate, updatedEntry.startTime, updatedEntry.endTime, updatedEntry.breakTime, updatedEntry.payType, updatedEntry.payRate,updatedEntry.overtimeRate, updatedEntry.commissionRate, updatedEntry.commissionDetails, updatedEntry.salaryAmount, updatedEntry.tips)
             if (isSuccess) {
                 showDialog = false
                 Log.d("onSave", "Successfully update entry")
@@ -869,6 +866,7 @@ class MainActivity : AppCompatActivity() {
         var payRate by remember { mutableStateOf(workEntry.payRate) }
         var overtimeRate by remember { mutableStateOf(workEntry.overtimeRate) }
         var salaryAmount by remember { mutableStateOf(workEntry.salaryAmount) }
+        var dailySalary by remember { mutableStateOf(workEntry.dailySalary) }
         var commissionRate by remember { mutableStateOf(workEntry.commissionRate) }
         var commissionDetails by remember { mutableStateOf(workEntry.commissionDetails)}
 
@@ -926,26 +924,12 @@ class MainActivity : AppCompatActivity() {
                                 )
                             }
                             "Salary" -> {
-                                var yearlySalaryInput by remember { mutableStateOf((salaryAmount * 365).toString()) }
-
-                                //Log initial salaryInput and salaryAmount
-                                Log.d("Details-Edit:Salary", "Initial yearly salary: $yearlySalaryInput")
-                                Log.d("Details-Edit:Salary", "Initial daily salary: $salaryAmount")
-
                                 TextField(
-                                    value = yearlySalaryInput,
-                                    onValueChange = { newValue ->
-                                        val parsedValue = newValue.toDoubleOrNull()
-
-                                        if (parsedValue != null) {
-                                            yearlySalaryInput = newValue
-
-//                                            salaryAmount = parsedValue / 365
-                                            //Log when salaryInput and salaryAmount change
-                                            Log.d("Details-Edit:Salary", "Updated yearly salary input: $yearlySalaryInput")
-                                            Log.d("Details-Edit:Salary", "Calculated daily salary: $salaryAmount")
-                                        } else {
-                                            yearlySalaryInput = newValue
+                                    value = salaryAmount.toString(),
+                                    onValueChange = {
+                                        val newValue = it.toDoubleOrNull()
+                                        if (newValue != null) {
+                                            salaryAmount = newValue
                                         }
                                     },
                                     label = { Text ("Yearly Salary")}
@@ -1015,10 +999,8 @@ class MainActivity : AppCompatActivity() {
                                 Text(text = "Overtime Rate: $overtimeRate")
                             }
                             "Salary" -> {
-                                val formattedSalaryAmount = String.format("%.2f", salaryAmount).toDouble()
-                                val formattedSalaryTotal = String.format("%.2f", salaryAmount * 365).toDouble()
-                                Text(text = "Total salary: $formattedSalaryTotal")
-                                Text(text = "Amount earned today: $formattedSalaryAmount")
+                                Text(text = "Total salary: $salaryAmount")
+                                Text(text = "Amount earned today: $dailySalary")
                             }
                             "Commission" -> {
                                 Text(text = "Commission rate: $commissionRate")
@@ -1045,7 +1027,10 @@ class MainActivity : AppCompatActivity() {
                                         breakTime = breakTime,
                                         payRate = payRate,
                                         payType = payType,
-                                        overtimeRate = overtimeRate
+                                        overtimeRate = overtimeRate,
+                                        commissionRate = commissionRate,
+                                        commissionDetails = commissionDetails,
+                                        salaryAmount = salaryAmount
                                     )
                                 )
                             }
@@ -1090,6 +1075,7 @@ class MainActivity : AppCompatActivity() {
                 val commissionDetails = cursor.getString(cursor.getColumnIndexOrThrow("commission_details"))
                 val totalCommissionSales = cursor.getDouble(cursor.getColumnIndexOrThrow("total_commission_sales"))
                 val salaryAmount = cursor.getDouble(cursor.getColumnIndexOrThrow("salary_amount"))
+                val dailySalary = cursor.getDouble(cursor.getColumnIndexOrThrow("daily_salary"))
                 val tips = cursor.getDouble(cursor.getColumnIndexOrThrow("tips"))
                 val netEarnings = cursor.getDouble(cursor.getColumnIndexOrThrow("total_earnings"))
 
@@ -1122,6 +1108,7 @@ class MainActivity : AppCompatActivity() {
                                 commissionSalesList,
                                 totalCommissionSales,
                                 salaryAmount,
+                                dailySalary,
                                 tips,
                                 netEarnings
                             )
@@ -1234,6 +1221,7 @@ class MainActivity : AppCompatActivity() {
                 val commissionDetails = cursor.getString(cursor.getColumnIndexOrThrow("commission_details"))
                 val totalCommissionSales = cursor.getDouble(cursor.getColumnIndexOrThrow("total_commission_sales"))
                 val salaryAmount = cursor.getDouble(cursor.getColumnIndexOrThrow("salary_amount"))
+                val dailySalary = cursor.getDouble(cursor.getColumnIndexOrThrow("daily_salary"))
                 val tips = cursor.getDouble(cursor.getColumnIndexOrThrow("tips"))
                 val wage = cursor.getDouble(cursor.getColumnIndexOrThrow("total_earnings"))
 
@@ -1242,7 +1230,7 @@ class MainActivity : AppCompatActivity() {
 
                 //Log or display the work detail
                 Log.d("MainActivity-fetchWorkEntriesForMonth", "Loaded WorkDetail for month: $workDate, $startTime - $endTime, Tips: $tips, Wage: $wage")
-                val workDetail = WorkEntry(id, workDate, startTime, endTime, breakTime, payType, payRate, overtimeRate, commissionRate, commissionSalesList, totalCommissionSales, salaryAmount, tips, wage)
+                val workDetail = WorkEntry(id, workDate, startTime, endTime, breakTime, payType, payRate, overtimeRate, commissionRate, commissionSalesList, totalCommissionSales, salaryAmount, dailySalary, tips, wage)
                 workEntries[id] = workDetail
             } while (cursor.moveToNext())
             Log.d("MainActivity-fetchWorkEntriesForMonth", "Work times displayed for month: ${workEntries.size} entries")
@@ -1280,6 +1268,7 @@ class MainActivity : AppCompatActivity() {
                 val commissionDetails = cursor.getString(cursor.getColumnIndexOrThrow("commission_details"))
                 val totalCommissionSales = cursor.getDouble(cursor.getColumnIndexOrThrow("total_commission_sales"))
                 val salaryAmount = cursor.getDouble(cursor.getColumnIndexOrThrow("salary_amount"))
+                val dailySalary = cursor.getDouble(cursor.getColumnIndexOrThrow("daily_salary"))
                 val tips = cursor.getDouble(cursor.getColumnIndexOrThrow("tips"))
                 val netEarnings = cursor.getDouble(cursor.getColumnIndexOrThrow("total_earnings"))
 
@@ -1287,8 +1276,8 @@ class MainActivity : AppCompatActivity() {
                     .mapNotNull { it.trim().toDoubleOrNull() }
 
                 //Display or append the work date and times to UI
-                Log.d("MainActivity-displayWorkTimesForSelectedDates", "Loaded WorkDetail for range: $workDate, $startTime - $endTime, $breakTime, $payType, $payRate, $overtimeRate, $commissionRate, $commissionSalesList, $totalCommissionSales, $salaryAmount, Tips: $tips, Net Earnings: $netEarnings")
-                val workEntry = WorkEntry(id, workDate, startTime, endTime, breakTime, payType, payRate, overtimeRate, commissionRate, commissionSalesList, totalCommissionSales, salaryAmount, tips, netEarnings)
+                Log.d("MainActivity-displayWorkTimesForSelectedDates", "Loaded WorkDetail for range: $workDate, $startTime - $endTime, $breakTime, $payType, $payRate, $overtimeRate, $commissionRate, $commissionSalesList, $totalCommissionSales, $salaryAmount, $dailySalary, Tips: $tips, Net Earnings: $netEarnings")
+                val workEntry = WorkEntry(id, workDate, startTime, endTime, breakTime, payType, payRate, overtimeRate, commissionRate, commissionSalesList, totalCommissionSales, salaryAmount, dailySalary, tips, netEarnings)
                 fetchedEntries[id] = workEntry
             } while (cursor.moveToNext())
             workEntries.clear()

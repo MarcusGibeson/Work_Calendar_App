@@ -13,6 +13,7 @@ data class WorkEntry(
     val commissionDetails: List<Double>,
     val totalCommissionAmount: Double,
     val salaryAmount: Double,
+    val dailySalary: Double,
     val tips: Double,
     val netEarnings: Double
 )

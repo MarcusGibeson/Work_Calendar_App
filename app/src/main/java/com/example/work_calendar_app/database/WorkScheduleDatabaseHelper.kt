@@ -8,6 +8,9 @@ import android.database.sqlite.SQLiteOpenHelper
 import android.util.Log
 import com.example.work_calendar_app.models.WorkSchedule
 import java.text.SimpleDateFormat
+import java.time.Duration
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 import java.util.Date
 import java.util.Locale
 
@@ -32,6 +35,7 @@ class WorkScheduleDatabaseHelper(context: Context) : SQLiteOpenHelper(context, D
         private const val COLUMN_COMMISSION_DETAILS = "commission_details"
         private const val COLUMN_TOTAL_COMMISSION_SALES = "total_commission_sales"
         private const val COLUMN_SALARY_AMOUNT = "salary_amount"
+        private const val COLUMN_DAILY_SALARY = "daily_salary"
         private const val COLUMN_TOTAL_EARNINGS = "total_earnings"
     }
 
@@ -51,6 +55,7 @@ class WorkScheduleDatabaseHelper(context: Context) : SQLiteOpenHelper(context, D
                 "$COLUMN_COMMISSION_DETAILS TEXT, " +
                 "$COLUMN_TOTAL_COMMISSION_SALES REAL, " +
                 "$COLUMN_SALARY_AMOUNT REAL, " +
+                "$COLUMN_DAILY_SALARY REAL, " +
                 "$COLUMN_TIPS REAL, " +
                 "$COLUMN_TOTAL_EARNINGS REAL )")
         db?.execSQL(createTableQuery)
@@ -82,7 +87,7 @@ class WorkScheduleDatabaseHelper(context: Context) : SQLiteOpenHelper(context, D
         return regex.matches(date)
     }
 
-    fun insertWorkSchedule(id: Long?, date: String, startTime: String, endTime: String, breakMinutes: Int, payType: String, payRate: Double, overtimeRate: Double, commissionRate: Int, commissionDetails: List<Double>, salaryAmount: Double, tips: Double, totalEarnings: Double): Boolean {
+    fun insertWorkSchedule(id: Long?, date: String, startTime: String, endTime: String, breakMinutes: Int, payType: String, payRate: Double, overtimeRate: Double, commissionRate: Int, commissionDetails: List<Double>, salaryAmount: Double, tips: Double): Boolean {
         val db = this.writableDatabase
         val sdf = SimpleDateFormat("yyyy/MM/dd", Locale.getDefault())
         var formattedDate: String? = null
@@ -93,7 +98,9 @@ class WorkScheduleDatabaseHelper(context: Context) : SQLiteOpenHelper(context, D
 
         val totalCommissionSales = generateCommissionTotal(commissionRate, commissionDetailsCSV)
 
-        val dailySalary = salaryAmount / 365 //rough daily estimate
+        val dailySalary = String.format("%.2f", salaryAmount / 365).toDouble()//rough daily estimate
+
+        val totalEarnings = calculateTotalEarnings(payRate, startTime, endTime, breakMinutes, overtimeRate, totalCommissionSales, salaryAmount, tips)
 
 
         // Log all the information being submitted
@@ -112,6 +119,7 @@ class WorkScheduleDatabaseHelper(context: Context) : SQLiteOpenHelper(context, D
         Log.d("Database-insertWorkSchedule", "Commission Rate: $commissionRate")
         Log.d("Database-insertWorkSchedule", "Commission Details: $commissionDetailsCSV")
         Log.d("Database-insertWorkSchedule", "Total Commission Sales: $totalCommissionSales")
+        Log.d("Database-insertWorkSchedule", "Total Salary Amount: $salaryAmount")
         Log.d("Database-insertWorkSchedule", "Daily Salary Amount: $dailySalary")
         Log.d("Database-insertWorkSchedule", "Tips: $tips")
         Log.d("Database-insertWorkSchedule", "Total Earnings: $totalEarnings")
@@ -127,7 +135,8 @@ class WorkScheduleDatabaseHelper(context: Context) : SQLiteOpenHelper(context, D
             put(COLUMN_COMMISSION_RATE, commissionRate)
             put(COLUMN_COMMISSION_DETAILS, commissionDetailsCSV)
             put(COLUMN_TOTAL_COMMISSION_SALES, totalCommissionSales)
-            put(COLUMN_SALARY_AMOUNT, dailySalary)
+            put(COLUMN_SALARY_AMOUNT, salaryAmount)
+            put(COLUMN_DAILY_SALARY, dailySalary)
             put(COLUMN_TIPS, tips)
             put(COLUMN_TOTAL_EARNINGS, totalEarnings)
         }
@@ -166,10 +175,6 @@ class WorkScheduleDatabaseHelper(context: Context) : SQLiteOpenHelper(context, D
     fun insertSavedSchedule(name: String, startTime: String, endTime: String, breakTime: Int, payType: String, hourlyRate: Double, overtimeRate: Double, commissionRate: Int, salaryAmount: Double) {
         val db = writableDatabase
 
-        Log.d("Database-insertSavedSchedule", "Salary Amount received for database insertion: $salaryAmount")
-//        val dailySalary = salaryAmount / 365 //rough daily estimate
-//        val formattedDailySalary = String.format("%.2f", dailySalary).toDouble()
-
         val values = ContentValues().apply {
             put(COLUMN_SCHEDULE_NAME, name)
             put(COLUMN_START_TIME, startTime)
@@ -191,8 +196,6 @@ class WorkScheduleDatabaseHelper(context: Context) : SQLiteOpenHelper(context, D
         db.close()
         return result > 0
     }
-
-
 
     fun getAllWorkSchedule(): Cursor {
         val db = this.readableDatabase
@@ -248,18 +251,62 @@ class WorkScheduleDatabaseHelper(context: Context) : SQLiteOpenHelper(context, D
         return cursor
     }
 
-
     fun getAllSavedSchedules(): Cursor {
         val db = this.readableDatabase
         return db.rawQuery("SELECT * FROM saved_schedules", null)
     }
 
-    fun generateCommissionTotal(commissionRate: Int, commissionDetailsCSV: String): Float {
+    //Function to calculate hours worked
+    private fun calculateHoursWorked(startTime: String, endTime: String): Double {
+        val timeFormatter = DateTimeFormatter.ofPattern("hh:mm a")
+
+        val start = LocalTime.parse(startTime, timeFormatter)
+        val end = LocalTime.parse(endTime, timeFormatter)
+
+        var duration = Duration.between(start, end)
+
+        //for overnight shifts
+        if (duration.isNegative) {
+            duration = duration.plusHours(24)
+        }
+
+        val hoursWorked = duration.toMinutes() / 60.0
+        Log.d("Database-CalculateHoursWorked", "Calculated hours worked: $hoursWorked (Start: $startTime, End: $endTime)")
+        return hoursWorked
+    }
+
+    private fun getOvertimeHours(workHours: Double): Double {
+        val standardHours = 8.0
+        return if (workHours > standardHours) workHours - standardHours else 0.0
+    }
+
+    private fun calculateTotalEarnings(hourlyRate: Double, startTime: String, endTime: String, breakTime: Int, overtimePay: Double, totalCommissionSales: Double, salaryAmount: Double, tips: Double): Double {
+        //Logic to calculate total earnings, including break time and overtime
+        val workHours = calculateHoursWorked(startTime, endTime) - (breakTime / 60)
+        val overtimeHours = getOvertimeHours(workHours)
+        val totalHourlyEarnings = (workHours * hourlyRate) + (overtimeHours * overtimePay)
+        val formattedTotalHourlyEarnings = String.format("%.2f", totalHourlyEarnings).toDouble()
+
+        val formattedCommissionTotal = String.format("%.2f", totalCommissionSales).toDouble()
+
+        val formattedSalaryAmount = String.format("%.2f", salaryAmount / 365).toDouble()
+
+        val totalEarnings = (formattedTotalHourlyEarnings + formattedCommissionTotal) + formattedSalaryAmount + tips
+
+
+
+        Log.d("Database-CalculateTotalEarnings", "Calculated Total Earnings: $totalEarnings (Work Hours: $workHours, Overtime hours: $overtimeHours)")
+        return totalEarnings
+    }
+
+    fun generateCommissionTotal(commissionRate: Int, commissionDetailsCSV: String): Double {
         //Split CSV
         val salesList = commissionDetailsCSV.split(",")
         val totalSales = salesList.map { it.toFloatOrNull() ?: 0f }.sum()
-
-        val totalCommission = totalSales * (commissionRate / 100)
+        val formattedSales = String.format("%.2f", totalSales).toDouble()
+        Log.d("Database- generateCommissionTotal", "Sales list: $salesList, Total sales: $totalSales, Commission Rate: $commissionRate")
+        val totalCommission = formattedSales * (commissionRate.toDouble() / 100)
+        Log.d("Database- generateCommissionTotal", "Total Commission earned: $totalCommission")
 
         return totalCommission
     }
