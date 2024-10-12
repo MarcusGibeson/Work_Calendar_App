@@ -6,6 +6,10 @@ data class WorkDetails (
     val startTime: String,
     val endTime: String,
     val breakTime: String,
+    val payType: String,
+    val payRate: Double,
+    val commissionSales: Double,
+    val dailySalary: Double,
     val tips: Double,
-    val wage: Double
+    val netEarnings: Double
 )

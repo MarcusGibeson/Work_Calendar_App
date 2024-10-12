@@ -5,22 +5,16 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
-import android.graphics.Insets.add
-import android.graphics.Rect
-import android.graphics.drawable.Icon
 import android.os.Bundle
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
-import android.view.View
 import androidx.compose.material3.Button
-import android.widget.CalendarView
 import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.widget.Toolbar
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -31,24 +25,19 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentSize
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -77,27 +66,19 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import androidx.recyclerview.widget.RecyclerView
-import com.example.work_calendar_app.adapters.WorkDetailsAdapter
 import com.example.work_calendar_app.calendar.DayDetailsPopup
 import com.example.work_calendar_app.calendar.WorkCalendar
 import com.example.work_calendar_app.data.WorkDetails
 import com.example.work_calendar_app.data.WorkEntry
 import com.example.work_calendar_app.database.WorkScheduleDatabaseHelper
 import java.text.SimpleDateFormat
-import java.time.Duration
 import java.time.LocalDate
-import java.time.LocalTime
 import java.time.Month
 import java.time.format.DateTimeFormatter
-import java.util.Date
 import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
@@ -182,7 +163,7 @@ class MainActivity : AppCompatActivity() {
                 Color(
                     sharedPreferences.getInt(
                         "baseTextColor",
-                        Color.Blue.toArgb()
+                        Color.Black.toArgb()
                     )
                 )
             )
@@ -285,7 +266,7 @@ class MainActivity : AppCompatActivity() {
             var showPopup by remember { mutableStateOf(false) }
 
             //Store fetched work details for the selected day
-            var workDetailsForPopup by remember { mutableStateOf(WorkDetails(0,"","","","", 0.0,0.0)) }
+            var workDetailsForPopup by remember { mutableStateOf(WorkDetails(0,"","","","", "",0.0, 0.0,0.0,0.0, 0.0)) }
 
             //Store fetched work details for the selected range
             val workDetailsList = remember { mutableStateListOf<WorkDetails>()}
@@ -305,7 +286,7 @@ class MainActivity : AppCompatActivity() {
                     Color(
                         sharedPreferences.getInt(
                             "backgroundColor1",
-                            Color.Blue.toArgb()
+                            Color(143, 216, 230).toArgb()
                         )
                     )
                 )
@@ -326,7 +307,7 @@ class MainActivity : AppCompatActivity() {
                     Color(
                         sharedPreferences.getInt(
                             "baseTextColor",
-                            Color.Blue.toArgb()
+                            Color.Black.toArgb()
                         )
                     )
                 )
@@ -337,7 +318,7 @@ class MainActivity : AppCompatActivity() {
                     Color(
                         sharedPreferences.getInt(
                             "baseButtonColor",
-                            Color.Blue.toArgb()
+                            Color(204, 153, 255).toArgb()
                         )
                     )
                 )
@@ -397,9 +378,14 @@ class MainActivity : AppCompatActivity() {
                 selectedDay = -1
             }
 
+            var isLoading by remember { mutableStateOf(true) }
+
             //Fetch the data for the selected day
             LaunchedEffect(selectedDay, entryEdited) {
                 if (selectedDay != -1 && !isSelectingRange) {
+                    isLoading = true
+                    workDetailsForPopup = WorkDetails(0, "", "", "", "", "", 0.0, 0.0 ,0.0, 0.0, 0.0)
+
                     val formattedDate = String.format("%04d-%02d-%02d", currentMonth.year, currentMonth.monthValue, selectedDay)
                     Log.d("MainActivity","formatted date: $formattedDate")
                     val workDetails = getWorkDetailsForDate(context, formattedDate)
@@ -411,11 +397,14 @@ class MainActivity : AppCompatActivity() {
                     } else {
                         Log.d("Popup","Work details: $workDetails")
                         showPopup = true
+                        isLoading = false
                     }
                 }
 
                 onEntryEditedChange(false)
             }
+
+
 
             //Box around calendar to detect swipe gestures
             val screenWidth = LocalConfiguration.current.screenWidthDp
@@ -585,13 +574,20 @@ class MainActivity : AppCompatActivity() {
                     WorkDetailsList(workEntries, currentMonth)
 
                     //Popup for displaying details
-                    if (showPopup && selectedDay != -1 && !isSelectingRange) {
+                    if(isLoading) {
+                        CircularProgressIndicator()
+                    } else if (showPopup && selectedDay != -1 && !isSelectingRange) {
                         DayDetailsPopup(
                             selectedDay = selectedDay,
                             startTime = workDetailsForPopup.startTime,
                             endTime = workDetailsForPopup.endTime,
                             breakTime = workDetailsForPopup.breakTime,
-                            wage = workDetailsForPopup.wage
+                            payType = workDetailsForPopup.payType,
+                            payRate = workDetailsForPopup.payRate,
+                            commissionSales = workDetailsForPopup.commissionSales,
+                            dailySalary = workDetailsForPopup.dailySalary,
+                            tips = workDetailsForPopup.tips,
+                            netEarnings = workDetailsForPopup.netEarnings
                         ) { showPopup = false }
                     }
                 }
@@ -622,7 +618,7 @@ class MainActivity : AppCompatActivity() {
                 Color(
                     sharedPreferences.getInt(
                         "baseTextColor",
-                        Color.Blue.toArgb()
+                        Color.Black.toArgb()
                     )
                 )
             )
@@ -751,8 +747,12 @@ class MainActivity : AppCompatActivity() {
                     startTime = workEntry.startTime,
                     endTime = workEntry.endTime,
                     breakTime = workEntry.breakTime.toString(),
+                    payType = workEntry.payType,
+                    payRate = workEntry.payRate,
+                    commissionSales = workEntry.totalCommissionAmount,
+                    dailySalary = workEntry.dailySalary,
                     tips = workEntry.tips,
-                    wage = workEntry.netEarnings
+                    netEarnings = workEntry.netEarnings
                 ).also { Log.d("WorkDetailsList", "Created WorkDetails: ID: $id, Date: $workDateLocal") }
         }
 
@@ -760,7 +760,7 @@ class MainActivity : AppCompatActivity() {
         Log.d("WorkDetailsList", "WorkDetailsList size: ${workDetailsList.size}")
 
         //Calculate total wage
-        val totalWage = workDetailsList.sumOf {it.wage}
+        val totalWage = workDetailsList.sumOf {it.netEarnings}
 
 
         Column(modifier = Modifier.fillMaxSize()) {
@@ -790,7 +790,7 @@ class MainActivity : AppCompatActivity() {
                             )
                         }
                         Text(
-                            text = "$${workDetail.wage}",
+                            text = "$${workDetail.netEarnings}",
                             modifier = Modifier.padding(start = 8.dp, end = 16.dp),
                             color = detailsWageColor
                         )
@@ -946,22 +946,28 @@ class MainActivity : AppCompatActivity() {
                                     },
                                     label = { Text ("Commission Rate")}
                                 )
-                                LazyColumn{
+                                LazyColumn(
+                                    modifier = Modifier
+                                        .height(150.dp)
+                                        .fillMaxWidth()
+                                ){
                                     items(commissionDetails) {detail ->
-                                        TextField(
-                                            value = detail.toString(),
-                                            onValueChange = {
-                                                val newValue = it.toDoubleOrNull()
-                                                if (newValue != null) {
-                                                    val index = commissionDetails.indexOf(detail)
-                                                    commissionDetails = commissionDetails.toMutableList().apply {
-                                                        set(index, newValue)
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            TextField(
+                                                value = detail.toString(),
+                                                onValueChange = {
+                                                    val newValue = it.toDoubleOrNull()
+                                                    if (newValue != null) {
+                                                        val index = commissionDetails.indexOf(detail)
+                                                        commissionDetails = commissionDetails.toMutableList().apply {
+                                                            set(index, newValue)
+                                                        }
                                                     }
-                                                }
-                                            },
-                                            label = { Text("Sale amount") },
-                                            modifier = Modifier.weight(1f)
-                                        )
+                                                },
+                                                label = { Text("Sale amount") },
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                        }
 
                                         //Delete button
                                         IconButton(
@@ -1124,23 +1130,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun calculateHoursWorked(startTime: String, endTime: String): Double {
-        val timeFormatter = DateTimeFormatter.ofPattern("hh:mm a")
-
-        val start = LocalTime.parse(startTime, timeFormatter)
-        val end = LocalTime.parse(endTime, timeFormatter)
-
-        var duration = Duration.between(start, end)
-
-        //for overnight shifts
-        if (duration.isNegative) {
-            duration = duration.plusHours(24)
-        }
-
-        val hoursWorked = duration.toMinutes() / 60.0
-        Log.d("AddWorKActivity-calculateHoursWorked", "Calculated hours worked: $hoursWorked (Start: $startTime, End: $endTime)")
-        return hoursWorked
-    }
 
     private suspend fun getWorkDetailsForDate(context: Context, date: String): WorkDetails {
         //Log when function is called
@@ -1152,7 +1141,7 @@ class MainActivity : AppCompatActivity() {
         //Log whether the cursor is null or not
         if (cursor == null) {
             Log.e("MainActivity-getWorkDetailsForDate", "Cursor is null. Database query failed for date: $date")
-            return WorkDetails(0,"", "", "", "", 0.0,0.0)
+            return WorkDetails(0,"", "", "", "", "",0.0,0.0, 0.0, 0.0, 0.0)
         }
 
         //Check if the cursor has data
@@ -1164,18 +1153,22 @@ class MainActivity : AppCompatActivity() {
                 val startTime = cursor.getString(cursor.getColumnIndexOrThrow("start_time"))
                 val endTime = cursor.getString(cursor.getColumnIndexOrThrow("end_time"))
                 val breakTime = cursor.getInt(cursor.getColumnIndexOrThrow("break_time_minutes")).toString()
+                val payType = cursor.getString(cursor.getColumnIndexOrThrow("pay_type"))
+                val payRate = cursor.getDouble(cursor.getColumnIndexOrThrow("pay_rate"))
+                val commissionSales = cursor.getDouble(cursor.getColumnIndexOrThrow("total_commission_sales"))
+                val dailySalary = cursor.getDouble(cursor.getColumnIndexOrThrow("daily_salary"))
                 val tips = cursor.getDouble(cursor.getColumnIndexOrThrow("tips"))
-                val wage = cursor.getDouble(cursor.getColumnIndexOrThrow("total_earnings"))
+                val netEarnings = cursor.getDouble(cursor.getColumnIndexOrThrow("total_earnings"))
 
 
                 //Log the extracted data
                 Log.d(
                     "MainActivity-getWorkDetailsForDate",
-                    "Work Date: $workDate, Start time: $startTime, End Time: $endTime, Break Time: $breakTime, Tips: $tips, Wage: $wage"
+                    "Work Date: $workDate, Start time: $startTime, End Time: $endTime, Break Time: $breakTime, Pay Type: $payType, Pay Rate: $payRate, Commission Sales; $commissionSales, Daily Salary: $dailySalary, Tips: $tips, Net Earnings: $netEarnings"
                 )
 
                 //Create a WorkDetails object and return it
-                return WorkDetails(id, workDate, startTime, endTime, breakTime, tips, wage)
+                return WorkDetails(id, workDate, startTime, endTime, breakTime, payType, payRate, commissionSales, dailySalary, tips, netEarnings)
             } catch (e: Exception) {
                 //Log any exceptions encountered while reading the cursor data
                 Log.e("MainActivity-getWorkDetailsForDate", "Error extracting work detail from cursor: ${e.message}")
@@ -1187,7 +1180,7 @@ class MainActivity : AppCompatActivity() {
 
         //Close cursor to avoid memory leaks
         cursor.close()
-        return WorkDetails(0, "", "", "","", 0.0,0.0)
+        return WorkDetails(0, "", "", "","", "",0.0, 0.0,0.0, 0.0, 0.0)
     }
 
     private fun fetchWorkEntriesForMonth(month: Int, year: Int): MutableMap<Long, WorkEntry> {
@@ -1223,14 +1216,14 @@ class MainActivity : AppCompatActivity() {
                 val salaryAmount = cursor.getDouble(cursor.getColumnIndexOrThrow("salary_amount"))
                 val dailySalary = cursor.getDouble(cursor.getColumnIndexOrThrow("daily_salary"))
                 val tips = cursor.getDouble(cursor.getColumnIndexOrThrow("tips"))
-                val wage = cursor.getDouble(cursor.getColumnIndexOrThrow("total_earnings"))
+                val netEarnings = cursor.getDouble(cursor.getColumnIndexOrThrow("total_earnings"))
 
                 val commissionSalesList = commissionDetails.split(",")
                     .mapNotNull { it.trim().toDoubleOrNull() }
 
                 //Log or display the work detail
-                Log.d("MainActivity-fetchWorkEntriesForMonth", "Loaded WorkDetail for month: $workDate, $startTime - $endTime, Tips: $tips, Wage: $wage")
-                val workDetail = WorkEntry(id, workDate, startTime, endTime, breakTime, payType, payRate, overtimeRate, commissionRate, commissionSalesList, totalCommissionSales, salaryAmount, dailySalary, tips, wage)
+                Log.d("MainActivity-fetchWorkEntriesForMonth", "Loaded WorkDetail for month: $workDate, $startTime - $endTime, Tips: $tips, Net Earnings: $netEarnings")
+                val workDetail = WorkEntry(id, workDate, startTime, endTime, breakTime, payType, payRate, overtimeRate, commissionRate, commissionSalesList, totalCommissionSales, salaryAmount, dailySalary, tips, netEarnings)
                 workEntries[id] = workDetail
             } while (cursor.moveToNext())
             Log.d("MainActivity-fetchWorkEntriesForMonth", "Work times displayed for month: ${workEntries.size} entries")

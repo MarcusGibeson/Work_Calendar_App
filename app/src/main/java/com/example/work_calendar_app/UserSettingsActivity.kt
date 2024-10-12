@@ -56,17 +56,17 @@ class UserSettingsActivity : AppCompatActivity() {
 
     //State variables for colors
     //Calendar
-    private var workDay1Color by mutableStateOf(Color.Gray)
+    private var workDay1Color by mutableStateOf(Color.Yellow)
 //    private var workDay2Color by mutableStateOf(Color.Gray)
 //    private var workDay3Color by mutableStateOf(Color.Gray)
-    private var outlineColor by mutableStateOf(Color.Gray)
+    private var outlineColor by mutableStateOf(Color.Blue)
 
     //App
-    private var backgroundColor1 by mutableStateOf(Color.Blue)
+    private var backgroundColor1 by mutableStateOf(Color(143, 216, 230))
     private var backgroundColor2 by mutableStateOf(Color.White)
     private var topBarColor by mutableStateOf(Color.Blue)
     private var baseTextColor by mutableStateOf(Color.Black)
-    private var baseButtonColor by mutableStateOf(Color.Green)
+    private var baseButtonColor by mutableStateOf(Color(204, 153, 255))
 
 
     //Details
@@ -99,6 +99,15 @@ class UserSettingsActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        //Check if the activity was started to reset preferences
+        val resetPreferences = intent.getBooleanExtra("resetPreferences", false)
+        if (resetPreferences) {
+            resetUserPreferences(this) {
+                finish()
+            }
+        }
+
         setContentView(R.layout.activity_user_settings)
 
         //Load color preferences
@@ -253,15 +262,15 @@ class UserSettingsActivity : AppCompatActivity() {
 
     private fun loadColorPreferences() {
         val sharedPreferences = getSharedPreferences("user_preferences", Context.MODE_PRIVATE)
-        workDay1Color = Color(sharedPreferences.getInt("workDay1Color", Color.Green.toArgb()))
+        workDay1Color = Color(sharedPreferences.getInt("workDay1Color", Color.Yellow.toArgb()))
 //      workDay2Color = Color(sharedPreferences.getInt("workDay2Color", Color.Yellow.toArgb()))
 //      workDay3Color = Color(sharedPreferences.getInt("workDay3Color", Color.Red.toArgb()))
         outlineColor = Color(sharedPreferences.getInt("outlineColor", Color.Blue.toArgb()))
-        backgroundColor1 = Color(sharedPreferences.getInt("backgroundColor1", Color.Blue.toArgb()))
+        backgroundColor1 = Color(sharedPreferences.getInt("backgroundColor1", Color(143, 216, 230).toArgb()))
         backgroundColor2 =  Color(sharedPreferences.getInt("backgroundColor2", Color.White.toArgb()))
         topBarColor =  Color(sharedPreferences.getInt("topBarColor", Color.Blue.toArgb()))
         baseTextColor = Color(sharedPreferences.getInt("baseTextColor", Color.Black.toArgb()))
-        baseButtonColor = Color(sharedPreferences.getInt("baseButtonColor", Color.Green.toArgb()))
+        baseButtonColor = Color(sharedPreferences.getInt("baseButtonColor", Color(204, 153, 255).toArgb()))
         detailsTextColor = Color(sharedPreferences.getInt("detailsTextColor", Color.Black.toArgb()))
         detailsDateColor = Color(sharedPreferences.getInt("detailsDateColor", Color.Blue.toArgb()))
         detailsWageColor = Color(sharedPreferences.getInt("detailsWageColor", Color.Red.toArgb()))

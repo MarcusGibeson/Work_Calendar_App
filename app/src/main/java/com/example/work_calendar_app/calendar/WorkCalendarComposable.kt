@@ -33,7 +33,7 @@ fun WorkCalendar(currentMonth: LocalDate, daysInMonth: Int, workDays: List<Int>,
             Color(
                 sharedPreferences.getInt(
                     "workDay1Color",
-                    Color.White.toArgb()
+                    Color.Yellow.toArgb()
                 )
             )
         )
@@ -63,7 +63,7 @@ fun WorkCalendar(currentMonth: LocalDate, daysInMonth: Int, workDays: List<Int>,
             Color(
                 sharedPreferences.getInt(
                     "outlineColor",
-                    Color.White.toArgb()
+                    Color.Blue.toArgb()
                 )
             )
         )
@@ -168,15 +168,36 @@ fun WorkCalendar(currentMonth: LocalDate, daysInMonth: Int, workDays: List<Int>,
 }
 
 @Composable
-fun DayDetailsPopup(selectedDay: Int, startTime: String, endTime: String, breakTime: String, wage: Double, onDismiss: () -> Unit) {
-    val hasWorkSchedule = !startTime.isNullOrEmpty() && !endTime.isNullOrEmpty() && !breakTime.isNullOrEmpty() && wage != null
+fun DayDetailsPopup(selectedDay: Int, startTime: String, endTime: String, breakTime: String, payType: String, payRate: Double, commissionSales: Double, dailySalary: Double, tips: Double, netEarnings: Double, onDismiss: () -> Unit) {
+    val hasWorkSchedule = !startTime.isNullOrEmpty() && !endTime.isNullOrEmpty() && !breakTime.isNullOrEmpty() && netEarnings != null
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(text = "Details for ${getDayWithOrdinalSuffix(selectedDay)}") },
         text = {
             if (hasWorkSchedule) {
-                Text("Work from $startTime to $endTime\n$breakTime minute break\nWage: $$wage")
+                Text(
+                    "Work from $startTime to $endTime" +
+                            if (breakTime > "0") {
+                                "\n$breakTime minute break"
+                            }else {
+                                "\nNo break"
+                            } +
+                            when(payType) {
+                                "Hourly" -> {
+                                    "\n$payType : Earn $$payRate/hr"
+                                }
+                                "Salary" -> {
+                                    "\n$payType : Made $$dailySalary this day"
+                                }
+                                "Commission" -> {
+                                    "\n$payType : Made $$commissionSales in sales"
+                                }
+
+                                else -> {}
+                            } +
+                            "\nTips: $$tips" +
+                            "\nNet Earnings: $$netEarnings")
             } else {
                 Text("No work schedule found for this day.")
             }
