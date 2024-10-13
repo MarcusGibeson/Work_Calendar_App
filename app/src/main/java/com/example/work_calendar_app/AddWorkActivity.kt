@@ -1,8 +1,10 @@
 package com.example.work_calendar_app
 
+import android.app.Activity
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
 import android.content.Context
+import android.content.Intent
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.widget.Button
@@ -118,6 +120,17 @@ class AddWorkActivity : AppCompatActivity() {
 
        updateUIState()
 
+        val selectedDay = intent.getIntExtra("selectedDay", -1)
+        val selectedMonth = intent.getIntExtra("selectedMonth", -1)
+        val selectedYear = intent.getIntExtra("selectedYear", -1)
+
+        if (selectedDay != -1 && selectedMonth != -1 && selectedYear != -1) {
+            val formattedDate = String.format("%d/%02d/%02d", selectedYear, selectedMonth, selectedDay)
+            workDate.setText(formattedDate)
+
+            Log.d("MainActivity", "Pre-filled date: $formattedDate")
+        }
+
 
         //Load saved schedules into the spinner
         loadSavedSchedulesIntoSpinner()
@@ -148,6 +161,14 @@ class AddWorkActivity : AppCompatActivity() {
         //Date picker for work date
         workDate.setOnClickListener {
             val calendar = Calendar.getInstance()
+
+            if (selectedDay != -1 && selectedMonth != -1 && selectedYear != -1) {
+                calendar.set(Calendar.DAY_OF_MONTH, selectedDay)
+                calendar.set(Calendar.MONTH, selectedMonth - 1)
+                calendar.set(Calendar.YEAR, selectedYear)
+            }
+
+            // Extract the year, month, and day for the DatePickerDialog
             val year = calendar.get(Calendar.YEAR)
             val month = calendar.get(Calendar.MONTH)
             val day = calendar.get(Calendar.DAY_OF_MONTH)
@@ -238,7 +259,9 @@ class AddWorkActivity : AppCompatActivity() {
             dbHelper.insertWorkSchedule(null, workDate, startTime, endTime, breakTime, payType, payRate, overtimePay, commissionRate, commissionDetails, salaryAmount, tips)
 
             Toast.makeText(this, "Work schedule added successfully!", Toast.LENGTH_SHORT).show()
-            setResult(RESULT_OK)
+            val resultIntent = Intent()
+            resultIntent.putExtra("entryAddedOrUpdated",true)
+            setResult(Activity.RESULT_OK, resultIntent)
             finish()
         }
 
@@ -413,11 +436,11 @@ class AddWorkActivity : AppCompatActivity() {
 
     fun updateUIState() {
         val sharedPreferences = getSharedPreferences("user_preferences", Context.MODE_PRIVATE)
-        val baseButtonColor = sharedPreferences.getInt("baseButtonColor", Color.Green.toArgb())
+        val baseButtonColor = sharedPreferences.getInt("baseButtonColor", Color(204, 153, 255).toArgb())
         val baseTextColor = sharedPreferences.getInt("baseTextColor", Color.Black.toArgb())
         val detailsTextColor = sharedPreferences.getInt("detailsTextColor", Color.Black.toArgb())
-        val backgroundColor1 = sharedPreferences.getInt("backgroundColor1", Color.White.toArgb())
-        val backgroundColor2 = sharedPreferences.getInt("backgroundColor2", Color.Blue.toArgb())
+        val backgroundColor1 = sharedPreferences.getInt("backgroundColor1", Color(143, 216, 230).toArgb())
+        val backgroundColor2 = sharedPreferences.getInt("backgroundColor2", Color.White.toArgb())
 
 
         //Set Button Colors

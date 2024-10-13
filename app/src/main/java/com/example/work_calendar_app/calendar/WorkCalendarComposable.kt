@@ -1,11 +1,13 @@
 package com.example.work_calendar_app.calendar
 
 import android.content.Context
+import android.content.Intent
 import android.content.SharedPreferences
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.foundation.shape.CircleShape
@@ -18,8 +20,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.example.work_calendar_app.AddWorkActivity
+import com.example.work_calendar_app.MainActivity
 import java.time.LocalDate
 
 @Composable
@@ -139,7 +144,20 @@ fun WorkCalendar(currentMonth: LocalDate, daysInMonth: Int, workDays: List<Int>,
                                         BorderStroke(1.dp, borderColor),
                                     )
                                     .background(backgroundColor)
-                                    .clickable { onDaySelected(day) },
+                                    .clickable { onDaySelected(day) }
+                                    .pointerInput(Unit) {
+                                        detectTapGestures(
+                                            onLongPress = {
+                                                //handle the long press and launch AddActivity
+                                                val intent = Intent(context, AddWorkActivity::class.java)
+                                                intent.putExtra("selectedDay", day)
+                                                intent.putExtra("selectedMonth", currentMonth.monthValue)
+                                                intent.putExtra("selectedYear", currentMonth.year)
+                                                (context as MainActivity).addWorkActivityLauncher.launch(intent)
+                                            }
+                                        )
+
+                                    },
                                 contentAlignment = Alignment.Center,
 
                                 ) {

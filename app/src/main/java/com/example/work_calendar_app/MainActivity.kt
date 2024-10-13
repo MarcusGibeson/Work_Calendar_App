@@ -84,7 +84,7 @@ import java.util.Locale
 class MainActivity : AppCompatActivity() {
 
     private lateinit var dbHelper: WorkScheduleDatabaseHelper
-    private lateinit var addWorkActivityLauncher: ActivityResultLauncher<Intent>
+    public lateinit var addWorkActivityLauncher: ActivityResultLauncher<Intent>
     var entryEdited by mutableStateOf(false)
     private var workEntriesChanged by mutableStateOf(0)
 
@@ -101,8 +101,10 @@ class MainActivity : AppCompatActivity() {
         ) { result ->
             if (result.resultCode == Activity.RESULT_OK) {
                 val data: Intent? = result.data
-                onAddOrUpdateOrDeleteEntry()
-
+                val entryAddedOrUpdated = data?.getBooleanExtra("entryAddedOrUpdated", false)
+                if (entryAddedOrUpdated == true){
+                    onAddOrUpdateOrDeleteEntry()
+                }
             }
         }
         setContent {
@@ -403,7 +405,6 @@ class MainActivity : AppCompatActivity() {
 
                 onEntryEditedChange(false)
             }
-
 
 
             //Box around calendar to detect swipe gestures

@@ -130,13 +130,33 @@ class WorkScheduleDatabaseHelper(context: Context) : SQLiteOpenHelper(context, D
             put(COLUMN_END_TIME, endTime)
             put(COLUMN_BREAK_TIME_MINUTES, breakMinutes)
             put(COLUMN_PAY_TYPE, payType)
-            put(COLUMN_PAY_RATE, payRate)
-            put(COLUMN_OVERTIME_RATE, overtimeRate)
-            put(COLUMN_COMMISSION_RATE, commissionRate)
+            when (payType) {
+                "Hourly" -> {
+                    put(COLUMN_PAY_RATE, payRate)
+                    put(COLUMN_OVERTIME_RATE, overtimeRate)
+                    put(COLUMN_COMMISSION_RATE, 0)
+                    put(COLUMN_TOTAL_COMMISSION_SALES, 0)
+                    put(COLUMN_SALARY_AMOUNT, 0)
+                    put(COLUMN_DAILY_SALARY, 0)
+                }
+                "Salary" -> {
+                    put(COLUMN_PAY_RATE, 0)
+                    put(COLUMN_OVERTIME_RATE, 0)
+                    put(COLUMN_COMMISSION_RATE, 0)
+                    put(COLUMN_TOTAL_COMMISSION_SALES, 0)
+                    put(COLUMN_SALARY_AMOUNT, salaryAmount)
+                    put(COLUMN_DAILY_SALARY, dailySalary)
+                }
+                "Commission" -> {
+                    put(COLUMN_PAY_RATE, 0)
+                    put(COLUMN_OVERTIME_RATE, 0)
+                    put(COLUMN_COMMISSION_RATE, commissionRate)
+                    put(COLUMN_TOTAL_COMMISSION_SALES, totalCommissionSales)
+                    put(COLUMN_SALARY_AMOUNT, 0)
+                    put(COLUMN_DAILY_SALARY, 0)
+                }
+            }
             put(COLUMN_COMMISSION_DETAILS, commissionDetailsCSV)
-            put(COLUMN_TOTAL_COMMISSION_SALES, totalCommissionSales)
-            put(COLUMN_SALARY_AMOUNT, salaryAmount)
-            put(COLUMN_DAILY_SALARY, dailySalary)
             put(COLUMN_TIPS, tips)
             put(COLUMN_TOTAL_EARNINGS, totalEarnings)
         }
