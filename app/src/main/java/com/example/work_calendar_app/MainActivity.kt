@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -34,6 +35,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ButtonDefaults
@@ -45,12 +47,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
@@ -72,6 +76,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.work_calendar_app.calendar.DayDetailsPopup
 import com.example.work_calendar_app.calendar.WorkCalendar
+import com.example.work_calendar_app.data.Job
 import com.example.work_calendar_app.data.WorkDetails
 import com.example.work_calendar_app.data.WorkEntry
 import com.example.work_calendar_app.database.WorkScheduleDatabaseHelper
@@ -143,12 +148,17 @@ class MainActivity : AppCompatActivity() {
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun CalendarScreen() {
+        var showJobDialog by remember { mutableStateOf(false) }
+        var jobName by remember { mutableStateOf("") }
         var workEntries by remember { mutableStateOf(mutableMapOf<Long, WorkEntry>()) }
         var currentMonth by remember { mutableStateOf(LocalDate.now()) }
         val context = LocalContext.current
+        val dbHelper = WorkScheduleDatabaseHelper(context)
         val sharedPreferences =
             context.getSharedPreferences("user_preferences", Context.MODE_PRIVATE)
 
+
+        //colors
         var topBarColor by remember {
             mutableStateOf(
                 Color(
@@ -171,17 +181,90 @@ class MainActivity : AppCompatActivity() {
             )
         }
 
+        var workDay1Color by remember {
+            mutableStateOf(
+                Color(
+                    sharedPreferences.getInt(
+                        "workDay1Color",
+                        Color.Yellow.toArgb()
+                    )
+                )
+            )
+        }
+        var workDay2Color by remember {
+            mutableStateOf(
+                Color(
+                    sharedPreferences.getInt(
+                        "workDay2Color",
+                        Color.Yellow.toArgb()
+                    )
+                )
+            )
+        }
+        var workDay3Color by remember {
+            mutableStateOf(
+                Color(
+                    sharedPreferences.getInt(
+                        "workDay3Color",
+                        Color.Yellow.toArgb()
+                    )
+                )
+            )
+        }
+        var workDay4Color by remember {
+            mutableStateOf(
+                Color(
+                    sharedPreferences.getInt(
+                        "workDay4Color",
+                        Color.Green.toArgb()
+                    )
+                )
+            )
+        }
+
+
+        val jobs = remember { mutableStateOf(listOf<Job>()) }
+        val jobColorMap = remember(workDay1Color, workDay2Color, workDay3Color, workDay4Color) {
+            derivedStateOf {
+                mapOf(
+                    1L to workDay1Color,
+                    2L to workDay2Color,
+                    3L to workDay3Color,
+                    4L to workDay4Color
+                )
+            }
+        }
+
+        //Fetch jobs when the screen is composed
+        LaunchedEffect(Unit) {
+            val jobList = dbHelper.fetchJobsFromDatabase()
+            jobs.value = jobList
+        }
+
         //Whenever the screen is recomposed, ensure it checks if the preferences have changed
         DisposableEffect(Unit) {
             val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-                if (key == "topBarColor") {
-                    //Update topBarColor when the preference changes
-                    topBarColor =
-                        Color(sharedPreferences.getInt("topBarColor", Color.Blue.toArgb()))
-                } else if (key == "baseTextColor") {
-                    baseTextColor =
-                        Color(sharedPreferences.getInt("baseTextColor", Color.Black.toArgb()))
+                when (key) {
+                    "topBarColor" -> {
+                        topBarColor = Color(sharedPreferences.getInt("topBarColor", Color.Blue.toArgb()))
+                    }
+                    "baseTextColor" -> {
+                        baseTextColor = Color(sharedPreferences.getInt("baseTextColor", Color.Black.toArgb()))
+                    }
+                    "workDay1Color" -> {
+                        workDay1Color = Color(sharedPreferences.getInt("workDay1Color", Color.Yellow.toArgb()))
+                    }
+                    "workDay2Color" -> {
+                        workDay2Color = Color(sharedPreferences.getInt("workDay2Color", Color.Red.toArgb()))
+                    }
+                    "workDay3Color" -> {
+                        workDay3Color = Color(sharedPreferences.getInt("workDay3Color", Color.Green.toArgb()))
+                    }
+                    "workDay4Color" -> {
+                        workDay4Color = Color(sharedPreferences.getInt("workDay4Color", Color.White.toArgb()))
+                    }
                 }
+
             }
             sharedPreferences.registerOnSharedPreferenceChangeListener(listener)
 
@@ -236,6 +319,11 @@ class MainActivity : AppCompatActivity() {
                         }
                     },
                     actions = {
+                        IconButton(onClick = {
+                            showJobDialog = true
+                        }) {
+                            Icon(Icons.Default.Add, contentDescription = "Manage Jobs")
+                        }
                         IconButton(onClick = { onSettingsClicked() }) {
                             Icon(Icons.Default.Settings, contentDescription = "Settings")
                         }
@@ -246,17 +334,75 @@ class MainActivity : AppCompatActivity() {
                 )
             },
             content = {innerPadding ->
-                CalendarContent(
-                    modifier = Modifier.padding(innerPadding),
-                    workEntries = workEntries,
-                    onMonthChanged = { newMonth ->
-                        currentMonth = currentMonth.withMonth(newMonth.value)
-                        workEntries = fetchWorkEntriesForMonth(currentMonth.month.value, currentMonth.year)
-                    },
-                    entryEdited = entryEdited,
-                    onEntryEditedChange = { isEdited -> entryEdited = isEdited },
-                    onWorkEntriesChanged = { refreshWorkEntries() }
-                )
+                Column(modifier = Modifier.padding(innerPadding)) {
+                    //Job bar under top bar
+                    if (jobs.value.isNotEmpty()) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(36.dp),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            val displayedJobs = jobs.value.take(4)
+
+                            //Create segments for each job
+                            displayedJobs.forEach { job ->
+                                val jobBackgroundColor = jobColorMap.value[job.id] ?: Color.Gray
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .fillMaxHeight()
+                                        .background(jobBackgroundColor),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(text = job.name, color = baseTextColor)
+                                }
+                            }
+
+                            //If there are fewer than 4 jobs, fill the remaining space with empty boxes
+                            repeat(4 - displayedJobs.size) {
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .fillMaxHeight()
+                                        .background(Color.LightGray),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    //Empty Space
+                                }
+                            }
+                        }
+                    }
+
+
+                    CalendarContent(
+                        modifier = Modifier.padding(innerPadding),
+                        workEntries = workEntries,
+                        onMonthChanged = { newMonth ->
+                            currentMonth = currentMonth.withMonth(newMonth.value)
+                            workEntries = fetchWorkEntriesForMonth(
+                                currentMonth.month.value,
+                                currentMonth.year
+                            )
+                        },
+                        entryEdited = entryEdited,
+                        onEntryEditedChange = { isEdited -> entryEdited = isEdited },
+                        onWorkEntriesChanged = { refreshWorkEntries() }
+                    )
+
+                    //Show the Job Management Dialog conditionally
+                    if (showJobDialog) {
+                        JobManagementDialog(
+                            onDismiss = { showJobDialog = false },
+                            onJobAdded = { jobName ->
+                                //Insert the new job into the database
+                                dbHelper.insertJob(jobName)
+                                Toast.makeText(context, "Job '$jobName' added successfully!", Toast.LENGTH_SHORT).show()
+
+                            }
+                        )
+                    }
+                }
             }
         )
     }
@@ -268,7 +414,7 @@ class MainActivity : AppCompatActivity() {
             var showPopup by remember { mutableStateOf(false) }
 
             //Store fetched work details for the selected day
-            var workDetailsForPopup by remember { mutableStateOf(WorkDetails(0,"","","","", "",0.0, 0.0,0.0,0.0, 0.0)) }
+            var workDetailsForPopup by remember { mutableStateOf(WorkDetails(0,0,"","","","", "",0.0, 0.0,0.0,0.0, 0.0)) }
 
             //Store fetched work details for the selected range
             val workDetailsList = remember { mutableStateListOf<WorkDetails>()}
@@ -329,6 +475,46 @@ class MainActivity : AppCompatActivity() {
             var detailsTextColor by remember {
                 mutableStateOf(Color(sharedPreferences.getInt("detailsTextColor", Color.Black.toArgb())))
             }
+            var workDay1Color by remember {
+                mutableStateOf(
+                    Color(
+                        sharedPreferences.getInt(
+                            "workDay1Color",
+                            Color.Yellow.toArgb()
+                        )
+                    )
+                )
+            }
+            var workDay2Color by remember {
+                mutableStateOf(
+                    Color(
+                        sharedPreferences.getInt(
+                            "workDay2Color",
+                            Color.Yellow.toArgb()
+                        )
+                    )
+                )
+            }
+            var workDay3Color by remember {
+                mutableStateOf(
+                    Color(
+                        sharedPreferences.getInt(
+                            "workDay3Color",
+                            Color.Yellow.toArgb()
+                        )
+                    )
+                )
+            }
+            var workDay4Color by remember {
+                mutableStateOf(
+                    Color(
+                        sharedPreferences.getInt(
+                            "workDay4Color",
+                            Color.Green.toArgb()
+                        )
+                    )
+                )
+            }
 
 
 
@@ -351,6 +537,18 @@ class MainActivity : AppCompatActivity() {
                         }
                         "detailsTextColor" -> {
                             detailsTextColor = Color(sharedPreferences.getInt("detailsTextColor", Color.Black.toArgb()))
+                        }
+                        "workDay1Color" -> {
+                            workDay1Color = Color(sharedPreferences.getInt("workDay1Color", Color.Yellow.toArgb()))
+                        }
+                        "workDay2Color" -> {
+                            workDay2Color = Color(sharedPreferences.getInt("workDay2Color", Color.Red.toArgb()))
+                        }
+                        "workDay3Color" -> {
+                            workDay3Color = Color(sharedPreferences.getInt("workDay3Color", Color.Green.toArgb()))
+                        }
+                        "workDay4Color" -> {
+                            workDay4Color = Color(sharedPreferences.getInt("workDay4Color", Color.White.toArgb()))
                         }
                     }
                 }
@@ -386,7 +584,7 @@ class MainActivity : AppCompatActivity() {
             LaunchedEffect(selectedDay, entryEdited) {
                 if (selectedDay != -1 && !isSelectingRange) {
                     isLoading = true
-                    workDetailsForPopup = WorkDetails(0, "", "", "", "", "", 0.0, 0.0 ,0.0, 0.0, 0.0)
+                    workDetailsForPopup = WorkDetails(0, 0,"", "", "", "", "", 0.0, 0.0 ,0.0, 0.0, 0.0)
 
                     val formattedDate = String.format("%04d-%02d-%02d", currentMonth.year, currentMonth.monthValue, selectedDay)
                     Log.d("MainActivity","formatted date: $formattedDate")
@@ -406,6 +604,16 @@ class MainActivity : AppCompatActivity() {
                 onEntryEditedChange(false)
             }
 
+
+            val jobColorMap = mutableMapOf<Long, Color>()
+
+            //Load colors from shared preferences
+            LaunchedEffect(Unit) {
+                jobColorMap[1] = workDay1Color
+                jobColorMap[2] = workDay2Color
+                jobColorMap[3] = workDay3Color
+                jobColorMap[4] = workDay4Color
+            }
 
             //Box around calendar to detect swipe gestures
             val screenWidth = LocalConfiguration.current.screenWidthDp
@@ -519,7 +727,7 @@ class MainActivity : AppCompatActivity() {
                     }
 
                     //Custom Work Calendar
-                    WorkCalendar(currentMonth, daysInMonth = daysInMonth, workDays = workDays.toList()) { day ->
+                    WorkCalendar(currentMonth, daysInMonth = daysInMonth, workDays = workDays { day ->
                         if (isSelectingRange) {
                             val monthValue = currentMonth.monthValue
                             val yearValue = currentMonth.year
@@ -691,6 +899,7 @@ class MainActivity : AppCompatActivity() {
         val onSaveEntry: (WorkEntry) -> Unit ={ updatedEntry ->
 
             Log.d("onSave", "updatedEntry.id: ${updatedEntry.id}")
+            Log.d("onSave", "updatedEntry.jobId: ${updatedEntry.jobId}")
             Log.d("onSave", "updatedEntry.workDate: ${updatedEntry.workDate}")
             Log.d("onSave", "updatedEntry.startTime: ${updatedEntry.startTime}")
             Log.d("onSave", "updatedEntry.endTime: ${updatedEntry.endTime}")
@@ -702,7 +911,7 @@ class MainActivity : AppCompatActivity() {
             Log.d("onSave", "updatedEntry.commissionRate: ${updatedEntry.commissionRate}")
             Log.d("onSave", "updatedEntry.commissionDetails: ${updatedEntry.commissionDetails}")
             Log.d("onSave", "updatedEntry.tips: ${updatedEntry.tips}")
-            val isSuccess = dbHelper.insertWorkSchedule(updatedEntry.id, updatedEntry.workDate, updatedEntry.startTime, updatedEntry.endTime, updatedEntry.breakTime, updatedEntry.payType, updatedEntry.payRate,updatedEntry.overtimeRate, updatedEntry.commissionRate, updatedEntry.commissionDetails, updatedEntry.salaryAmount, updatedEntry.tips)
+            val isSuccess = dbHelper.insertWorkSchedule(updatedEntry.id, updatedEntry.jobId, updatedEntry.workDate, updatedEntry.startTime, updatedEntry.endTime, updatedEntry.breakTime, updatedEntry.payType, updatedEntry.payRate,updatedEntry.overtimeRate, updatedEntry.commissionRate, updatedEntry.commissionDetails, updatedEntry.salaryAmount, updatedEntry.tips)
             if (isSuccess) {
                 showDialog = false
                 Log.d("onSave", "Successfully update entry")
@@ -744,6 +953,7 @@ class MainActivity : AppCompatActivity() {
             Log.d("WorkDetailsList", "Verifying date: ID: $id, Date: $formattedWorkDate")
                 WorkDetails(
                     id = workEntry.id,
+                    jobId = workEntry.jobId,
                     workDate = formattedWorkDate,
                     startTime = workEntry.startTime,
                     endTime = workEntry.endTime,
@@ -1064,6 +1274,61 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    @Composable
+    fun JobManagementDialog(
+        onDismiss: () -> Unit,
+        onJobAdded: (String) -> Unit
+    ) {
+        var jobName by remember { mutableStateOf("") }
+        val context = LocalContext.current
+        val sharedPreferences =
+            context.getSharedPreferences("user_preferences", Context.MODE_PRIVATE)
+
+        Dialog(onDismissRequest = onDismiss) {
+            Surface(
+                shape = MaterialTheme.shapes.medium,
+                color = MaterialTheme.colorScheme.surface,
+                shadowElevation = 8.dp
+            ) {
+                Column(
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(text = "Enter Job Name", style = MaterialTheme.typography.headlineSmall)
+
+                    TextField(
+                        value = jobName,
+                        onValueChange = { jobName = it },
+                        label = { Text("Job Name") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Row(
+                        horizontalArrangement = Arrangement.End,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        TextButton(onClick = onDismiss) {
+                            Text("Cancel")
+                        }
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        TextButton(onClick = {
+                            if (jobName.isNotBlank()) {
+                                onJobAdded(jobName)
+                                onDismiss()
+                            }
+                        }) {
+                            Text("Add Job")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     private fun loadAllWorkSchedules(workDays: MutableList<Int>, workEntries: MutableMap<Long, WorkEntry>, currentMonth: Int, currentYear: Int) {
         dbHelper = WorkScheduleDatabaseHelper(this)
         val cursor = dbHelper.getAllWorkSchedule()
@@ -1071,6 +1336,7 @@ class MainActivity : AppCompatActivity() {
         if (cursor != null && cursor.moveToFirst()) {
             do {
                 val id = cursor.getLong(cursor.getColumnIndexOrThrow("id"))
+                val jobId = cursor.getLong(cursor.getColumnIndexOrThrow("job_id"))
                 val workDate = cursor.getString(cursor.getColumnIndexOrThrow("work_date"))
                 val startTime = cursor.getString(cursor.getColumnIndexOrThrow("start_time"))
                 val endTime = cursor.getString(cursor.getColumnIndexOrThrow("end_time"))
@@ -1104,6 +1370,7 @@ class MainActivity : AppCompatActivity() {
                             //Add the work entry to the list only if it's in the current month and year
                             workEntries[id] = WorkEntry(
                                 id,
+                                jobId,
                                 workDate,
                                 startTime,
                                 endTime,
@@ -1142,7 +1409,7 @@ class MainActivity : AppCompatActivity() {
         //Log whether the cursor is null or not
         if (cursor == null) {
             Log.e("MainActivity-getWorkDetailsForDate", "Cursor is null. Database query failed for date: $date")
-            return WorkDetails(0,"", "", "", "", "",0.0,0.0, 0.0, 0.0, 0.0)
+            return WorkDetails(0,0, "", "", "", "", "",0.0,0.0, 0.0, 0.0, 0.0)
         }
 
         //Check if the cursor has data
@@ -1150,6 +1417,7 @@ class MainActivity : AppCompatActivity() {
             try {
                 //Extract the data from the cursor
                 val id = cursor.getLong(cursor.getColumnIndexOrThrow("id"))
+                val jobId = cursor.getLong(cursor.getColumnIndexOrThrow("job_id"))
                 val workDate = cursor.getString(cursor.getColumnIndexOrThrow("work_date"))
                 val startTime = cursor.getString(cursor.getColumnIndexOrThrow("start_time"))
                 val endTime = cursor.getString(cursor.getColumnIndexOrThrow("end_time"))
@@ -1165,11 +1433,11 @@ class MainActivity : AppCompatActivity() {
                 //Log the extracted data
                 Log.d(
                     "MainActivity-getWorkDetailsForDate",
-                    "Work Date: $workDate, Start time: $startTime, End Time: $endTime, Break Time: $breakTime, Pay Type: $payType, Pay Rate: $payRate, Commission Sales; $commissionSales, Daily Salary: $dailySalary, Tips: $tips, Net Earnings: $netEarnings"
+                    "Job ID: $jobId, Work Date: $workDate, Start time: $startTime, End Time: $endTime, Break Time: $breakTime, Pay Type: $payType, Pay Rate: $payRate, Commission Sales; $commissionSales, Daily Salary: $dailySalary, Tips: $tips, Net Earnings: $netEarnings"
                 )
 
                 //Create a WorkDetails object and return it
-                return WorkDetails(id, workDate, startTime, endTime, breakTime, payType, payRate, commissionSales, dailySalary, tips, netEarnings)
+                return WorkDetails(id, jobId, workDate, startTime, endTime, breakTime, payType, payRate, commissionSales, dailySalary, tips, netEarnings)
             } catch (e: Exception) {
                 //Log any exceptions encountered while reading the cursor data
                 Log.e("MainActivity-getWorkDetailsForDate", "Error extracting work detail from cursor: ${e.message}")
@@ -1181,7 +1449,7 @@ class MainActivity : AppCompatActivity() {
 
         //Close cursor to avoid memory leaks
         cursor.close()
-        return WorkDetails(0, "", "", "","", "",0.0, 0.0,0.0, 0.0, 0.0)
+        return WorkDetails(0, 0, "", "", "","", "",0.0, 0.0,0.0, 0.0, 0.0)
     }
 
     private fun fetchWorkEntriesForMonth(month: Int, year: Int): MutableMap<Long, WorkEntry> {
@@ -1204,6 +1472,7 @@ class MainActivity : AppCompatActivity() {
         if (cursor != null && cursor.moveToFirst()) {
             do {
                 val id = cursor.getLong(cursor.getColumnIndexOrThrow("id"))
+                val jobId = cursor.getLong(cursor.getColumnIndexOrThrow("job_id"))
                 val workDate = cursor.getString(cursor.getColumnIndexOrThrow("work_date"))
                 val startTime = cursor.getString(cursor.getColumnIndexOrThrow("start_time"))
                 val endTime = cursor.getString(cursor.getColumnIndexOrThrow("end_time"))
@@ -1223,8 +1492,8 @@ class MainActivity : AppCompatActivity() {
                     .mapNotNull { it.trim().toDoubleOrNull() }
 
                 //Log or display the work detail
-                Log.d("MainActivity-fetchWorkEntriesForMonth", "Loaded WorkDetail for month: $workDate, $startTime - $endTime, Tips: $tips, Net Earnings: $netEarnings")
-                val workDetail = WorkEntry(id, workDate, startTime, endTime, breakTime, payType, payRate, overtimeRate, commissionRate, commissionSalesList, totalCommissionSales, salaryAmount, dailySalary, tips, netEarnings)
+                Log.d("MainActivity-fetchWorkEntriesForMonth", "Loaded WorkDetail for month: $jobId, $workDate, $startTime - $endTime, Tips: $tips, Net Earnings: $netEarnings")
+                val workDetail = WorkEntry(id, jobId, workDate, startTime, endTime, breakTime, payType, payRate, overtimeRate, commissionRate, commissionSalesList, totalCommissionSales, salaryAmount, dailySalary, tips, netEarnings)
                 workEntries[id] = workDetail
             } while (cursor.moveToNext())
             Log.d("MainActivity-fetchWorkEntriesForMonth", "Work times displayed for month: ${workEntries.size} entries")
@@ -1251,6 +1520,7 @@ class MainActivity : AppCompatActivity() {
             val fetchedEntries = mutableStateMapOf<Long, WorkEntry>()
             do {
                 val id = cursor.getLong(cursor.getColumnIndexOrThrow("id"))
+                val jobId = cursor.getLong(cursor.getColumnIndexOrThrow("job_id"))
                 val workDate = cursor.getString(cursor.getColumnIndexOrThrow("work_date"))
                 val startTime = cursor.getString(cursor.getColumnIndexOrThrow("start_time"))
                 val endTime = cursor.getString(cursor.getColumnIndexOrThrow("end_time"))
@@ -1271,7 +1541,7 @@ class MainActivity : AppCompatActivity() {
 
                 //Display or append the work date and times to UI
                 Log.d("MainActivity-displayWorkTimesForSelectedDates", "Loaded WorkDetail for range: $workDate, $startTime - $endTime, $breakTime, $payType, $payRate, $overtimeRate, $commissionRate, $commissionSalesList, $totalCommissionSales, $salaryAmount, $dailySalary, Tips: $tips, Net Earnings: $netEarnings")
-                val workEntry = WorkEntry(id, workDate, startTime, endTime, breakTime, payType, payRate, overtimeRate, commissionRate, commissionSalesList, totalCommissionSales, salaryAmount, dailySalary, tips, netEarnings)
+                val workEntry = WorkEntry(id, jobId, workDate, startTime, endTime, breakTime, payType, payRate, overtimeRate, commissionRate, commissionSalesList, totalCommissionSales, salaryAmount, dailySalary, tips, netEarnings)
                 fetchedEntries[id] = workEntry
             } while (cursor.moveToNext())
             workEntries.clear()
@@ -1300,7 +1570,5 @@ class MainActivity : AppCompatActivity() {
         val regex = Regex("^\\d{4}-\\d{2}-\\d{2}$")
         return regex.matches(date)
     }
-
-
 
 }

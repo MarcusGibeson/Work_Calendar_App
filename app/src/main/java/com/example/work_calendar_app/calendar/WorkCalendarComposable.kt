@@ -43,26 +43,36 @@ fun WorkCalendar(currentMonth: LocalDate, daysInMonth: Int, workDays: List<Int>,
             )
         )
     }
-//    var workDay2Color by remember {
-//        mutableStateOf(
-//            Color(
-//                sharedPreferences.getInt(
-//                    "workDay2Color",
-//                    Color.White.toArgb()
-//                )
-//            )
-//        )
-//    }
-//    var workDay3Color by remember {
-//        mutableStateOf(
-//            Color(
-//                sharedPreferences.getInt(
-//                    "workDay3Color",
-//                    Color.White.toArgb()
-//                )
-//            )
-//        )
-//    }
+    var workDay2Color by remember {
+        mutableStateOf(
+            Color(
+                sharedPreferences.getInt(
+                    "workDay2Color",
+                    Color.Red.toArgb()
+                )
+            )
+        )
+    }
+    var workDay3Color by remember {
+        mutableStateOf(
+            Color(
+                sharedPreferences.getInt(
+                    "workDay3Color",
+                    Color.Green.toArgb()
+                )
+            )
+        )
+    }
+    var workDay4Color by remember {
+        mutableStateOf(
+            Color(
+                sharedPreferences.getInt(
+                    "workDay3Color",
+                    Color.White.toArgb()
+                )
+            )
+        )
+    }
     var outlineColor by remember {
         mutableStateOf(
             Color(
@@ -87,14 +97,19 @@ fun WorkCalendar(currentMonth: LocalDate, daysInMonth: Int, workDays: List<Int>,
     //Whenever the screen is recomposed, ensure it checks if the preferences have changed
     DisposableEffect(Unit) {
         val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-            if (key == "workDay1Color") {
-                //Update workDay2Color when the preference changes
-                workDay1Color =
-                    Color(sharedPreferences.getInt("workDay1Color", Color.Green.toArgb()))
-            } else if (key == "outlineColor") {
-                //Update outlineColor when the preference changes
-                outlineColor =
-                    Color(sharedPreferences.getInt("outlineColor", Color.Green.toArgb()))
+            when (key)  {
+                "workDay1Color" -> {
+                    workDay1Color = Color(sharedPreferences.getInt("workDay1Color", Color.Yellow.toArgb()))
+                }
+                "workDay2Color" -> {
+                    workDay2Color = Color(sharedPreferences.getInt("workDay2Color", Color.Red.toArgb()))
+                }
+                "workDay3Color" -> {
+                    workDay3Color = Color(sharedPreferences.getInt("workDay3Color", Color.Green.toArgb()))
+                }
+                "workDay4Color" -> {
+                    workDay4Color = Color(sharedPreferences.getInt("workDay4Color", Color.White.toArgb()))
+                }
             }
         }
         sharedPreferences.registerOnSharedPreferenceChangeListener(listener)
@@ -127,12 +142,14 @@ fun WorkCalendar(currentMonth: LocalDate, daysInMonth: Int, workDays: List<Int>,
                         if (day in 1..daysInMonth) {
                             val currentDayColor =  if (day == currentDay) Color(outlineColor.toArgb()) else Color.Transparent
                             val borderColor = Color.Black
-                            val backgroundColor = when {
-                                workDays.contains(day) -> Color(workDay1Color.toArgb())//WorkDays
-                                //work2Days.contains(day) -> Color(workDay2Color)
-                                //work3Days.contains(day) -> Color(workDay3Color)
-                                else -> Color.LightGray
-                            }
+
+                            //Determine background color based on job assignment
+                            val jobId = fetchJobIdFromDatabase(day)
+
+                            val backgroundColor = jobId?.let { id ->
+                                jobColors[id] ?: Color.LightGray
+                            } ?: Color.LightGray
+
                             Box(
                                 modifier = Modifier
                                     .size(48.dp)

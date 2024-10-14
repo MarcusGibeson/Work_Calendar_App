@@ -32,6 +32,8 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.work_calendar_app.adapters.CommissionDetailsAdapter
+import com.example.work_calendar_app.adapters.JobAdapter
+import com.example.work_calendar_app.data.Job
 
 class AddWorkActivity : AppCompatActivity() {
 
@@ -69,18 +71,19 @@ class AddWorkActivity : AppCompatActivity() {
     private lateinit var btnSave: Button
     private lateinit var btnSaveSchedule: Button
     private lateinit var btnFinish: Button
-
+    private lateinit var jobSpinner: Spinner
+    private lateinit var jobList: List<Job>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_add_work)
-
 
         Log.d("AddWorkActivity", "Activity created, initializing views.")
 
         //Initialize Values
         dbHelper = WorkScheduleDatabaseHelper(this)
         savedScheduleSpinner = findViewById(R.id.savedScheduleSpinner)
+
         workDate = findViewById(R.id.workDate)
         startTime = findViewById(R.id.startTime)
         startTimeEditText = findViewById(R.id.startTime)
@@ -116,6 +119,9 @@ class AddWorkActivity : AppCompatActivity() {
         btnSave = findViewById(R.id.btnSave)
         btnSaveSchedule = findViewById(R.id.saveScheduleButton)
         btnFinish = findViewById(R.id.btnFinish)
+        jobList = dbHelper.fetchJobsFromDatabase()
+        jobSpinner = findViewById(R.id.jobSpinner)
+
         Log.d("AddWorkActivity", "Views initialized")
 
        updateUIState()
@@ -151,6 +157,21 @@ class AddWorkActivity : AppCompatActivity() {
             override fun onItemSelected(parent: AdapterView<*>, view: View?, position: Int, id: Long) {
                 val selectedScheduleName = parent.getItemAtPosition(position) as String
                 loadScheduleDetails(selectedScheduleName)
+            }
+
+            override fun onNothingSelected(parent:AdapterView<*>?) {
+                //Do nothing if no item is selected
+            }
+        }
+
+        loadJobsIntoSpinner()
+
+        //Set OnItemSelectedListener for jobSpinner
+        jobSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener{
+            override fun onItemSelected(parent: AdapterView<*>, view: View?, position: Int, id: Long) {
+                val selectedJob = jobSpinner.selectedItem as Job
+                val selectedJobId = selectedJob.id
+                Log.d("JobSelection", "Selected Job ID: $selectedJobId")
             }
 
             override fun onNothingSelected(parent:AdapterView<*>?) {
@@ -238,6 +259,8 @@ class AddWorkActivity : AppCompatActivity() {
 
         //Handle adding work schedule
         btnSave.setOnClickListener {
+            val selectedJob = jobSpinner.selectedItem as Job
+            val selectedJobId = selectedJob.id
             val workDate = workDate.text.toString()
             val startTime = startTime.text.toString()
             val endTime = endTime.text.toString()
@@ -256,7 +279,7 @@ class AddWorkActivity : AppCompatActivity() {
             Log.d("AddWorkActivity", "Saving Work Schedule: Date: $workDate, Start time: $startTime, End time: $endTime, Break Time: $breakTime, Pay Type: $payType, Hourly Rate: $payRate, Overtime Pay: $overtimePay, Commission Rate: $commissionRate, Commission Details: $commissionDetails, Salary Amount: $salaryAmount, Tips: $tips")
             //Insert into database
             val dbHelper = WorkScheduleDatabaseHelper(this)
-            dbHelper.insertWorkSchedule(null, workDate, startTime, endTime, breakTime, payType, payRate, overtimePay, commissionRate, commissionDetails, salaryAmount, tips)
+            dbHelper.insertWorkSchedule(null, selectedJobId, workDate, startTime, endTime, breakTime, payType, payRate, overtimePay, commissionRate, commissionDetails, salaryAmount, tips)
 
             Toast.makeText(this, "Work schedule added successfully!", Toast.LENGTH_SHORT).show()
             val resultIntent = Intent()
@@ -267,6 +290,8 @@ class AddWorkActivity : AppCompatActivity() {
 
         //Save Schedule into database for later use
         btnSaveSchedule.setOnClickListener {
+            val selectedJob = jobSpinner.selectedItem as Job
+            val selectedJobId = selectedJob.id
             val startTime = startTime.text.toString()
             val endTime = endTime.text.toString()
             val breakTime = breakTime.text.toString().toIntOrNull() ?: 0
@@ -280,7 +305,7 @@ class AddWorkActivity : AppCompatActivity() {
             val scheduleName = "$startTime - $endTime"
 
             //Insert into saved schedules database
-            dbHelper.insertSavedSchedule(scheduleName, startTime, endTime, breakTime, payType, hourlyRate, overtimePay, commissionRate, salaryAmount)
+            dbHelper.insertSavedSchedule(selectedJobId, scheduleName, startTime, endTime, breakTime, payType, hourlyRate, overtimePay, commissionRate, salaryAmount)
             updateUIState()
             Toast.makeText(this, "Schedule saved as $scheduleName", Toast.LENGTH_SHORT).show()
         }
@@ -289,25 +314,6 @@ class AddWorkActivity : AppCompatActivity() {
             finish()
         }
     }
-
-
-
-
-
-    private fun generateCommissionTotal(commissionRate: Int, commissionDetailsCSV: String): Float {
-        //Split CSV
-        val salesList = commissionDetailsCSV.split(",")
-        Log.d("AddWorkActivity", "Sales list: $salesList")
-        val totalSales = salesList.map { it.toFloatOrNull() ?: 0f }.sum()
-        Log.d("AddWorkActivity", "Total sales: $totalSales")
-        val commissionPercentage = (commissionRate / 100.0f)
-
-        val totalCommission = totalSales * commissionPercentage
-        Log.d("AddWorkActivity", "Generate commission total: $totalCommission")
-        return totalCommission
-    }
-
-
 
     //Spinner to pick a saved schedule
     private fun loadSavedSchedulesIntoSpinner() {
@@ -323,10 +329,19 @@ class AddWorkActivity : AppCompatActivity() {
                 scheduleNames.add(scheduleName)
             } while (cursor.moveToNext())
         }
+        cursor.close()
 
         val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, scheduleNames)
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         savedScheduleSpinner.adapter = adapter
+    }
+
+    private fun loadJobsIntoSpinner() {
+        val jobs = dbHelper.fetchJobsFromDatabase()
+        val jobAdapter = JobAdapter(this, jobs)
+
+        jobSpinner.adapter = jobAdapter
+
     }
 
     private fun loadScheduleDetails(scheduleName: String) {
