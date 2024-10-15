@@ -1,4 +1,4 @@
-package com.example.work_calendar_app.models
+package com.example.work_calendar_app.data.models
 
 data class WorkSchedule (
     val id: Int,

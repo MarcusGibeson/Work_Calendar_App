@@ -1,4 +1,4 @@
-package com.example.work_calendar_app.database
+package com.example.work_calendar_app.data.database
 
 import android.content.ContentValues
 import android.content.Context
@@ -6,12 +6,10 @@ import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import android.util.Log
-import com.example.work_calendar_app.models.WorkSchedule
 import java.text.SimpleDateFormat
 import java.time.Duration
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
-import java.util.Date
 import java.util.Locale
 
 class WorkScheduleDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {

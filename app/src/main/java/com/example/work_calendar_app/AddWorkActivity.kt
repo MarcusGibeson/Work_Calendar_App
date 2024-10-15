@@ -12,7 +12,7 @@ import android.widget.EditText
 import android.widget.Spinner
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.example.work_calendar_app.database.WorkScheduleDatabaseHelper
+import com.example.work_calendar_app.data.database.WorkScheduleDatabaseHelper
 import java.util.Calendar
 import android.util.Log
 import android.view.View
