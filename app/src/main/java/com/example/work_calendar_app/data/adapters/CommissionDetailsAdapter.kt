@@ -1,4 +1,4 @@
-package com.example.work_calendar_app.adapters
+package com.example.work_calendar_app.data.adapters
 
 import android.view.LayoutInflater
 import android.view.View

@@ -1,4 +1,4 @@
-package com.example.work_calendar_app.calendar
+package com.example.work_calendar_app.ui.composables.calendar
 
 import android.content.Context
 import android.content.Intent
@@ -6,10 +6,8 @@ import android.content.SharedPreferences
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -144,9 +142,9 @@ fun WorkCalendar(currentMonth: LocalDate, daysInMonth: Int, workDays: List<Int>,
                                         BorderStroke(1.dp, borderColor),
                                     )
                                     .background(backgroundColor)
-                                    .clickable { onDaySelected(day) }
                                     .pointerInput(Unit) {
                                         detectTapGestures(
+                                            onTap = { onDaySelected(day) },
                                             onLongPress = {
                                                 //handle the long press and launch AddActivity
                                                 val intent = Intent(context, AddWorkActivity::class.java)

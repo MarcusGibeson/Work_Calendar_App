@@ -70,10 +70,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import com.example.work_calendar_app.calendar.DayDetailsPopup
-import com.example.work_calendar_app.calendar.WorkCalendar
-import com.example.work_calendar_app.data.WorkDetails
-import com.example.work_calendar_app.data.WorkEntry
+import com.example.work_calendar_app.ui.composables.calendar.DayDetailsPopup
+import com.example.work_calendar_app.ui.composables.calendar.WorkCalendar
+import com.example.work_calendar_app.data.models.WorkDetails
+import com.example.work_calendar_app.data.models.WorkEntry
 import com.example.work_calendar_app.database.WorkScheduleDatabaseHelper
 import java.text.SimpleDateFormat
 import java.time.LocalDate

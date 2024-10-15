@@ -13,9 +13,6 @@ import android.widget.Spinner
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.example.work_calendar_app.database.WorkScheduleDatabaseHelper
-import java.time.Duration
-import java.time.LocalTime
-import java.time.format.DateTimeFormatter
 import java.util.Calendar
 import android.util.Log
 import android.view.View
@@ -23,15 +20,11 @@ import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.ImageButton
 import android.widget.TextView
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.Button
-import androidx.compose.material3.Text
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.example.work_calendar_app.adapters.CommissionDetailsAdapter
+import com.example.work_calendar_app.data.adapters.CommissionDetailsAdapter
 
 class AddWorkActivity : AppCompatActivity() {
 

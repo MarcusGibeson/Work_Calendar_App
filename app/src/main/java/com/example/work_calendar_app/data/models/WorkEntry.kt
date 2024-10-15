@@ -1,4 +1,4 @@
-package com.example.work_calendar_app.data
+package com.example.work_calendar_app.data.models
 
 data class WorkEntry(
     val id: Long,
