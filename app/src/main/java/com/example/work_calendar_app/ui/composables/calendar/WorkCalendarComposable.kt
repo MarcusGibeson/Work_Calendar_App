@@ -23,10 +23,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.work_calendar_app.AddWorkActivity
 import com.example.work_calendar_app.MainActivity
+import com.example.work_calendar_app.viewmodels.WorkViewModel
 import java.time.LocalDate
 
 @Composable
-fun WorkCalendar(currentMonth: LocalDate, daysInMonth: Int, workDays: List<Int>, onDaySelected: (Int) -> Unit) {
+fun WorkCalendar(viewModel: WorkViewModel, currentMonth: LocalDate, daysInMonth: Int, workDays: List<Int>, onDaySelected: (Int) -> Unit) {
     val context = LocalContext.current
     val sharedPreferences = context.getSharedPreferences("user_preferences", Context.MODE_PRIVATE)
 

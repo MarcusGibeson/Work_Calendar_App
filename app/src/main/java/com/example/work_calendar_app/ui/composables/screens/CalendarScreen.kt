@@ -33,7 +33,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat.startActivity
 import com.example.work_calendar_app.R
 import com.example.work_calendar_app.UserSettingsActivity
 import com.example.work_calendar_app.data.models.WorkEntry
@@ -45,6 +44,8 @@ import java.time.LocalDate
 @Composable
 fun CalendarScreen(viewModel: WorkViewModel) {
     var workEntries by remember { mutableStateOf(mutableMapOf<Long, WorkEntry>()) }
+    var entryEdited by remember { mutableStateOf(false) }
+    var workEntriesChanged by remember { mutableStateOf(0) }
     var selectedDay by remember { mutableStateOf(-1) }
     var firstSelectedDate by remember { mutableStateOf<String?>(null) }
     var secondSelectedDate by remember { mutableStateOf<String?>(null) }
@@ -54,26 +55,17 @@ fun CalendarScreen(viewModel: WorkViewModel) {
     val sharedPreferences =
         context.getSharedPreferences("user_preferences", Context.MODE_PRIVATE)
 
-    var topBarColor by remember {
-        mutableStateOf(
-            Color(
-                sharedPreferences.getInt(
-                    "topBarColor",
-                    Color.Blue.toArgb()
-                )
-            )
-        )
+    var topBarColor by remember { mutableStateOf(Color(sharedPreferences.getInt("topBarColor", Color.Blue.toArgb()))) }
+
+    var baseTextColor by remember { mutableStateOf(Color(sharedPreferences.getInt("baseTextColor", Color.Black.toArgb()))) }
+
+    fun refreshWorkEntries() {
+        workEntriesChanged++
     }
 
-    var baseTextColor by remember {
-        mutableStateOf(
-            Color(
-                sharedPreferences.getInt(
-                    "baseTextColor",
-                    Color.Black.toArgb()
-                )
-            )
-        )
+    fun onAddOrUpdateOrDeleteEntry() {
+        refreshWorkEntries()
+        entryEdited = true
     }
 
     //Whenever the screen is recomposed, ensure it checks if the preferences have changed
@@ -141,7 +133,7 @@ fun CalendarScreen(viewModel: WorkViewModel) {
                     }
                 },
                 actions = {
-                    IconButton(onClick = { onSettingsClicked() }) {
+                    IconButton(onClick = { onSettingsClicked(context) }) {
                         Icon(Icons.Default.Settings, contentDescription = "Settings")
                     }
                 },
@@ -152,17 +144,24 @@ fun CalendarScreen(viewModel: WorkViewModel) {
         },
         content = {innerPadding ->
             CalendarContent(
+                viewModel,
                 modifier = Modifier.padding(innerPadding),
-                workEntries = workEntries,
+                workEntries = viewModel.workEntries,
                 onMonthChanged = { newMonth ->
                     currentMonth = currentMonth.withMonth(newMonth.value)
-                    workEntries = fetchWorkEntriesForMonth(currentMonth.month.value, currentMonth.year)
+                    viewModel.fetchWorkEntriesForMonth(currentMonth.month.value, currentMonth.year)
                 },
                 entryEdited = entryEdited,
-                onEntryEditedChange = { isEdited -> entryEdited = isEdited },
-                onWorkEntriesChanged = { refreshWorkEntries() }
-            )
+                onEntryEditedChange = { isEdited -> entryEdited = isEdited }
+            ) { refreshWorkEntries() }
         }
     )
 }
+
+private fun onSettingsClicked(context: Context) {
+    val intent = Intent(context, UserSettingsActivity::class.java)
+    context.startActivity(intent)
+}
+
+
 

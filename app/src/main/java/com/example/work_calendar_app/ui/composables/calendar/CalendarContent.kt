@@ -47,12 +47,13 @@ import com.example.work_calendar_app.AddWorkActivity
 import com.example.work_calendar_app.data.models.WorkDetails
 import com.example.work_calendar_app.data.models.WorkEntry
 import com.example.work_calendar_app.viewmodels.WorkViewModel
+import kotlinx.coroutines.flow.StateFlow
 import java.time.LocalDate
 import java.time.Month
 import java.time.format.DateTimeFormatter
 
 @Composable
-fun CalendarContent(viewModel: WorkViewModel, modifier: Modifier, workEntries: MutableMap<Long, WorkEntry>, onMonthChanged: (Month) -> Unit, entryEdited: Boolean, onEntryEditedChange: (Boolean) -> Unit, onWorkEntriesChanged: () -> Unit) {
+fun CalendarContent(viewModel: WorkViewModel, modifier: Modifier, workEntries: StateFlow<Map<Long, WorkEntry>>, onMonthChanged: (Month) -> Unit, entryEdited: Boolean, onEntryEditedChange: (Boolean) -> Unit, onWorkEntriesChanged: () -> Unit) {
 
 
     Box(modifier = Modifier) {
@@ -64,7 +65,7 @@ fun CalendarContent(viewModel: WorkViewModel, modifier: Modifier, workEntries: M
         var isSelectingRange by remember { mutableStateOf(false) }
 
         //Store fetched work details for the selected day
-        var workDetailsForPopup by remember { mutableStateOf(WorkDetails(0,"","","","", "",0.0, 0.0,0.0,0.0, 0.0)) }
+        var workEntriesForPopup by remember { mutableStateOf(WorkDetails(0,"","","","", "",0.0, 0.0,0.0,0.0, 0.0)) }
 
         //Store fetched work details for the selected range
         val workDetailsList = remember { mutableStateListOf<WorkDetails>() }
@@ -80,55 +81,14 @@ fun CalendarContent(viewModel: WorkViewModel, modifier: Modifier, workEntries: M
         val sharedPreferences = context.getSharedPreferences("user_preferences", Context.MODE_PRIVATE)
 
         //Retrieve colors from preferences, with default fallback values
-        var backgroundColor1 by remember {
-            mutableStateOf(
-                Color(
-                    sharedPreferences.getInt(
-                        "backgroundColor1",
-                        Color(143, 216, 230).toArgb()
-                    )
-                )
-            )
-        }
-        var backgroundColor2 by remember {
-            mutableStateOf(
-                Color(
-                    sharedPreferences.getInt(
-                        "backgroundColor2",
-                        Color.White.toArgb()
-                    )
-                )
-            )
-        }
+        var backgroundColor1 by remember { mutableStateOf(Color(sharedPreferences.getInt("backgroundColor1", Color(143, 216, 230).toArgb()))) }
+        var backgroundColor2 by remember { mutableStateOf(Color(sharedPreferences.getInt("backgroundColor2", Color.White.toArgb()))) }
 
-        var baseTextColor by remember {
-            mutableStateOf(
-                Color(
-                    sharedPreferences.getInt(
-                        "baseTextColor",
-                        Color.Black.toArgb()
-                    )
-                )
-            )
-        }
+        var baseTextColor by remember { mutableStateOf(Color(sharedPreferences.getInt("baseTextColor", Color.Black.toArgb()))) }
 
-        var baseButtonColor by remember {
-            mutableStateOf(
-                Color(
-                    sharedPreferences.getInt(
-                        "baseButtonColor",
-                        Color(204, 153, 255).toArgb()
-                    )
-                )
-            )
-        }
+        var baseButtonColor by remember { mutableStateOf(Color(sharedPreferences.getInt("baseButtonColor", Color(204, 153, 255).toArgb()))) }
 
-        var detailsTextColor by remember {
-            mutableStateOf(Color(sharedPreferences.getInt("detailsTextColor", Color.Black.toArgb())))
-        }
-
-
-
+        var detailsTextColor by remember { mutableStateOf(Color(sharedPreferences.getInt("detailsTextColor", Color.Black.toArgb()))) }
 
         //Whenever the screen is recomposed, ensure it checks if the preferences have changed
         DisposableEffect(Unit) {
@@ -161,7 +121,10 @@ fun CalendarContent(viewModel: WorkViewModel, modifier: Modifier, workEntries: M
 
         //Initial load
         LaunchedEffect(Unit) {
-            loadAllWorkSchedules(workDays, workEntries, currentMonth.monthValue, currentMonth.year)
+            viewModel.loadAllWorkEntries(
+                currentMonth = currentMonth.monthValue,
+                currentYear = currentMonth.year
+            )
             Log.d("Workdays", "Initial load - Work Days: $workDays")
         }
 
@@ -317,7 +280,7 @@ fun CalendarContent(viewModel: WorkViewModel, modifier: Modifier, workEntries: M
                 }
 
                 //Custom Work Calendar
-                WorkCalendar(currentMonth, daysInMonth = daysInMonth, workDays = workDays.toList()) { day ->
+                WorkCalendar(viewModel, currentMonth, daysInMonth = daysInMonth, workDays = workDays.toList()) { day ->
                     if (isSelectingRange) {
                         val monthValue = currentMonth.monthValue
                         val yearValue = currentMonth.year
@@ -370,7 +333,7 @@ fun CalendarContent(viewModel: WorkViewModel, modifier: Modifier, workEntries: M
                     modifier = Modifier.padding(vertical = 0.dp),
                     color = baseTextColor
                 )
-                WorkDetailsList(workEntries, currentMonth)
+                WorkEntriesList(workEntries, currentMonth)
 
                 //Popup for displaying details
                 if(isLoading) {
@@ -378,15 +341,15 @@ fun CalendarContent(viewModel: WorkViewModel, modifier: Modifier, workEntries: M
                 } else if (showPopup && selectedDay != -1 && !isSelectingRange) {
                     DayDetailsPopup(
                         selectedDay = selectedDay,
-                        startTime = workDetailsForPopup.startTime,
-                        endTime = workDetailsForPopup.endTime,
-                        breakTime = workDetailsForPopup.breakTime,
-                        payType = workDetailsForPopup.payType,
-                        payRate = workDetailsForPopup.payRate,
-                        commissionSales = workDetailsForPopup.commissionSales,
-                        dailySalary = workDetailsForPopup.dailySalary,
-                        tips = workDetailsForPopup.tips,
-                        netEarnings = workDetailsForPopup.netEarnings
+                        startTime = workEntriesForPopup.startTime,
+                        endTime = workEntriesForPopup.endTime,
+                        breakTime = workEntriesForPopup.breakTime,
+                        payType = workEntriesForPopup.payType,
+                        payRate = workEntriesForPopup.payRate,
+                        commissionSales = workEntriesForPopup.commissionSales,
+                        dailySalary = workEntriesForPopup.dailySalary,
+                        tips = workEntriesForPopup.tips,
+                        netEarnings = workEntriesForPopup.netEarnings
                     ) { showPopup = false }
                 }
             }

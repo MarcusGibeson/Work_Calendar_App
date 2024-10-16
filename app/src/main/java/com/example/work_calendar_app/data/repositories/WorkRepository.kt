@@ -25,6 +25,26 @@ class WorkRepository (private val dbHelper: WorkScheduleDatabaseHelper) {
         return@withContext workEntries
     }
 
+    //Fetch work entry for specific date
+    suspend fun getWorkEntryForDate(date: String): WorkEntry = withContext(Dispatchers.IO) {
+        val cursor = dbHelper.getWorkScheduleByDate(date)
+        if (cursor == null) {
+            Log.e("WorkRepository", "Cursor is null. Database query failed for date: $date")
+        }
+
+        var workEntry = WorkEntry(0, "","","",0,"",0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+
+        if (cursor != null && cursor.moveToFirst()) {
+            try {
+                val workEntry = cursorToWorkEntry(cursor)
+            } catch (e: Exception) {
+                Log.e("WorkRepository", "Error extracting work entry from cursor: ${e.message}")
+            }
+        }
+        cursor.close()
+        return@withContext workEntry
+    }
+
     //Insert or update a work entry in the database
     suspend fun addOrUpdateWorkEntry(workEntry: WorkEntry) = withContext(Dispatchers.IO) {
         dbHelper.insertWorkSchedule(

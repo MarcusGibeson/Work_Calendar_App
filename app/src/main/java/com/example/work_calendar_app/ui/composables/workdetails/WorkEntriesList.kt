@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -35,10 +34,12 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 @Composable
-fun WorkDetailsList(viewModel: WorkViewModel, workEntries: MutableMap<Long, WorkEntry>, currentMonth: LocalDate) {
+fun WorkEntriesList(viewModel: WorkViewModel, workEntries: MutableMap<Long, WorkEntry>, currentMonth: LocalDate) {
     //Dialog state to show or hide the details dialog
     var showDialog by remember { mutableStateOf(false) }
     var selectedWorkEntry by remember { mutableStateOf<WorkEntry?>(null) }
+
+    var workEntriesChanged by remember { mutableStateOf(0) }
 
     //Extracting the current year and month for date formatting
     val currentYear = currentMonth.year
@@ -116,6 +117,14 @@ fun WorkDetailsList(viewModel: WorkViewModel, workEntries: MutableMap<Long, Work
         }
     }
 
+    fun refreshWorkEntries() {
+        workEntriesChanged++
+    }
+
+    fun onAddOrUpdateOrDeleteEntry() {
+        refreshWorkEntries()
+        entryEdited = true
+    }
 
     // Log current month and year
     Log.d("WorkDetailsList", "Current year: $currentYear, Current month: $currentMonthValue")
@@ -123,7 +132,6 @@ fun WorkDetailsList(viewModel: WorkViewModel, workEntries: MutableMap<Long, Work
 
     //Function to update the workEntries when saving a new or modified entry
     val onSaveEntry: (WorkEntry) -> Unit ={ updatedEntry ->
-
         Log.d("onSave", "updatedEntry.id: ${updatedEntry.id}")
         Log.d("onSave", "updatedEntry.workDate: ${updatedEntry.workDate}")
         Log.d("onSave", "updatedEntry.startTime: ${updatedEntry.startTime}")
@@ -136,31 +144,28 @@ fun WorkDetailsList(viewModel: WorkViewModel, workEntries: MutableMap<Long, Work
         Log.d("onSave", "updatedEntry.commissionRate: ${updatedEntry.commissionRate}")
         Log.d("onSave", "updatedEntry.commissionDetails: ${updatedEntry.commissionDetails}")
         Log.d("onSave", "updatedEntry.tips: ${updatedEntry.tips}")
-        val isSuccess = dbHelper.insertWorkSchedule(updatedEntry.id, updatedEntry.workDate, updatedEntry.startTime, updatedEntry.endTime, updatedEntry.breakTime, updatedEntry.payType, updatedEntry.payRate,updatedEntry.overtimeRate, updatedEntry.commissionRate, updatedEntry.commissionDetails, updatedEntry.salaryAmount, updatedEntry.tips)
-        if (isSuccess) {
+        viewModel.saveOrUpdateWorkEntry(updatedEntry, onSuccess = {
             showDialog = false
-            Log.d("onSave", "Successfully update entry")
-
-            //Update the existing workEntries map with the modified entry
             workEntries[updatedEntry.id] = updatedEntry
             onAddOrUpdateOrDeleteEntry()
-        }else {
+            Log.d("onSave", "Successfully updated entry")
+        }, onError = {
             Log.e("onSave", "Failed to update entry")
-        }
+        })
     }
 
     val onDeleteEntry: () -> Unit = {
         selectedWorkEntry?.let { entryToDelete ->
-            val isSuccess = dbHelper.deleteWorkEntry(entryToDelete.id)
+            val isSuccess = viewModel.deleteWorkEntry(entryToDelete.id)
             if (isSuccess) {
                 //Remove the entry from workEntries after successful deletion
                 workEntries.remove(entryToDelete.id)
 
                 showDialog = false
-                Log.d("WorkDetails", "Successfully deleted entry")
+                Log.d("WorkEntries", "Successfully deleted entry")
                 onAddOrUpdateOrDeleteEntry()
             }else {
-                Log.e("WorkDetails", "Failed to delete entry")
+                Log.e("WorkEntries", "Failed to delete entry")
             }
         }
     }
@@ -192,10 +197,10 @@ fun WorkDetailsList(viewModel: WorkViewModel, workEntries: MutableMap<Long, Work
     }
 
     // Log the size of the work details list
-    Log.d("WorkDetailsList", "WorkDetailsList size: ${workDetailsList.size}")
+    Log.d("WorkEntriesList", "WorkDetailsList size: ${workDetailsList.size}")
 
     //Calculate total wage
-    val totalWage = workDetailsList.sumOf {it.netEarnings}
+    val totalWage = workEntryList.sumOf {it.netEarnings}
 
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -205,7 +210,7 @@ fun WorkDetailsList(viewModel: WorkViewModel, workEntries: MutableMap<Long, Work
                 .weight(1f)
                 .padding(end = 8.dp) //padding for scrollbar
         ) {
-            items(workDetailsList) { workDetail ->
+            items(workEntryList) { workDetail ->
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -287,4 +292,7 @@ fun WorkDetailsList(viewModel: WorkViewModel, workEntries: MutableMap<Long, Work
             onDelete = onDeleteEntry
         )
     }
+
+
+
 }
