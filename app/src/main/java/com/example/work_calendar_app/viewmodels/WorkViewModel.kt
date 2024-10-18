@@ -12,6 +12,7 @@ import com.example.work_calendar_app.data.models.WorkEntry
 import com.example.work_calendar_app.data.repositories.WorkRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -23,11 +24,19 @@ class WorkViewModel (private val workRepository: WorkRepository) : ViewModel() {
     private val _selectedDate = MutableStateFlow<Long?>(null)
     val selectedDate = _selectedDate.asStateFlow()
 
+    //State to hold loading value
+    private val _loading = MutableStateFlow(false)
+    val loading: StateFlow<Boolean> = _loading
+
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage: StateFlow<String?> = _errorMessage
+
     //Properties to hold work entries and work days
     private val _workEntries = MutableStateFlow<Map<Long, WorkEntry>>(emptyMap())
     val workEntries = _workEntries.asStateFlow()
 
-    private val _workEntry = MutableLiveData<WorkEntry>()
+    private val _workEntry = MutableStateFlow<WorkEntry?>(null)
+    val workEntry = _workEntry.asStateFlow()
 
     private val _workDays = mutableStateListOf<Int>()
     val workDays: List<Int> get() = _workDays
@@ -44,57 +53,82 @@ class WorkViewModel (private val workRepository: WorkRepository) : ViewModel() {
     //Function to load all work entries from the repository
     fun loadAllWorkEntries(currentMonth: Int, currentYear: Int) {
        viewModelScope.launch {
-           //Fetch all work entries from the repository
-           val workEntriesList = workRepository.getAllWorkEntries()
+           _loading.value = true
+           try {
+               //Fetch all work entries from the repository
+               val workEntriesList = workRepository.getAllWorkEntries()
 
-           val newWorkEntries = mutableMapOf<Long, WorkEntry>()
-           val newWorkDays = mutableListOf<Int>()
+               val newWorkEntries = mutableMapOf<Long, WorkEntry>()
+               val newWorkDays = mutableListOf<Int>()
 
-           //Process the list of work entries
-           for ((_, workEntry) in workEntriesList) {
-               val workDate = workEntry.workDate
-               if (workDate != null && workDate.length >= 10) {
-                   val workYear = workDate.substring(0, 4).toInt()
-                   val workMonth = workDate.substring(5, 7).toInt()
-                   val workDay = workDate.substring(8, 10).toInt()
+               //Process the list of work entries
+               for ((_, workEntry) in workEntriesList) {
+                   val workDate = workEntry.workDate
+                   if (workDate != null && workDate.length >= 10) {
+                       val workYear = workDate.substring(0, 4).toInt()
+                       val workMonth = workDate.substring(5, 7).toInt()
+                       val workDay = workDate.substring(8, 10).toInt()
 
-                   //Check if the workDate belong to the current month and year in calendar
-                   if (workMonth == currentMonth && workYear == currentYear) {
-                       //Add the work entry to the list only if it's in the current month and year
-                       newWorkEntries[workEntry.id] = workEntry
-                       newWorkDays.add(workDay)
+                       //Check if the workDate belong to the current month and year in calendar
+                       if (workMonth == currentMonth && workYear == currentYear) {
+                           //Add the work entry to the list only if it's in the current month and year
+                           newWorkEntries[workEntry.id] = workEntry
+                           newWorkDays.add(workDay)
+                       }
+                   } else {
+                       Log.e("WorkViewModel", "Invalid work date format: $workDate")
                    }
-               } else {
-                   Log.e("WorkViewModel", "Invalid work date format: $workDate")
                }
+
+               //Update the state
+               _workEntries.value = newWorkEntries
+               _workDays.clear()
+               _workDays.addAll(newWorkDays)
+               Log.d("WorkViewModel", "Work days added: ${_workDays.joinToString()}")
+           } catch (e: Exception) {
+               _errorMessage.value = "Failed to load entries"
+           } finally {
+               _loading.value = false
            }
 
-           //Update the state
-           _workEntries.value = newWorkEntries
-           _workDays.clear()
-           _workDays.addAll(newWorkDays)
        }
     }
 
     //Function to load a specific work entry based on date
-    fun fetchWorkEntryForDate(date: String) {
-        viewModelScope.launch {
-            //Call the repository to get the work entry for the specific date
-            val workEntry = workRepository.getWorkEntryForDate(date)
-            _workEntry.postValue(workEntry)
+    fun getWorkEntryForDate(formattedDate: String, onResult: (WorkEntry?) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val workEntry = workRepository.getWorkEntryForDate(formattedDate)
+                withContext(Dispatchers.Main) {
+                    onResult(workEntry)
+                }
+            } catch (e: Exception) {
+                Log.e("WorkViewModel", "Error fetching work entry for date: $formattedDate", e)
+                withContext(Dispatchers.Main) {
+                    onResult(null)
+                }
+            }
         }
     }
 
     //Function to get work entries between two dates
-    fun fetchWorkEntriesBetweenDates(startDate: String, endDate: String) {
+    fun fetchWorkEntriesBetweenDates(startDate: String, endDate: String, onResult: (List<WorkEntry>) -> Unit) {
         viewModelScope.launch(Dispatchers.IO) {
+            _loading.value = true
             try {
-                val filteredEntries = workRepository.getWorkEntriesBetweenDates(startDate, endDate)
+                val filteredEntriesMap = workRepository.getWorkEntriesBetweenDates(startDate, endDate)
+                val filteredEntries = filteredEntriesMap.values.toList()
                 withContext(Dispatchers.Main) {
-                    _workEntries.value = filteredEntries
+                    onResult(filteredEntries)
                 }
             } catch (e: Exception) {
+                _errorMessage.value = "Failed to load entries"
                 Log.e("WorkViewModel", "Error fetching work entries between $startDate and $endDate")
+                withContext(Dispatchers.Main) {
+                    onResult(emptyList())
+                }
+            } finally {
+                _loading.value = false
             }
         }
     }
@@ -102,6 +136,7 @@ class WorkViewModel (private val workRepository: WorkRepository) : ViewModel() {
     //Function to get work entries in a particular month
     fun fetchWorkEntriesForMonth(month: Int, year: Int) {
         viewModelScope.launch(Dispatchers.IO) {
+            _loading.value = true
             try {
                 //Create the start and end dates for the month
                 val startOfMonth = LocalDate.of(year, month, 1)
@@ -116,7 +151,10 @@ class WorkViewModel (private val workRepository: WorkRepository) : ViewModel() {
                     _workEntries.value = filteredEntries
                 }
             } catch (e: Exception) {
+                _errorMessage.value = "Failed to load entries"
                 Log.e("WorkViewModel", "Error fetching work entries for month: $month, year: $year")
+            } finally {
+                _loading.value = false
             }
         }
     }
@@ -131,20 +169,25 @@ class WorkViewModel (private val workRepository: WorkRepository) : ViewModel() {
 
     fun saveOrUpdateWorkEntry(workEntry: WorkEntry, onSuccess: () -> Unit, onError: () -> Unit) {
         viewModelScope.launch(Dispatchers.IO) {
+            _loading.value = true
             try {
                 val isSuccess = workRepository.addOrUpdateWorkEntry(workEntry)
                 withContext(Dispatchers.Main) {
                     if (isSuccess) {
+                        loadAllWorkEntries(currentMonth, currentYear)
                         onSuccess()
                     } else {
                         onError()
                     }
                 }
             } catch (e: Exception) {
+                _errorMessage.value = "Failed to update entry"
                 Log.e("WorkViewModel", "Error saving or updating work entry: ${e.message}")
                 withContext(Dispatchers.Main) {
                     onError()
                 }
+            } finally {
+             _loading.value = false
             }
         }
     }
@@ -157,10 +200,6 @@ class WorkViewModel (private val workRepository: WorkRepository) : ViewModel() {
         }
     }
 
-    //Function to set the selected date
-    fun selectDate(date: Long) {
-        _selectedDate.value = date
-    }
 
 
 }

@@ -3,6 +3,7 @@ package com.example.work_calendar_app.ui.composables.calendar
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -32,47 +33,9 @@ fun WorkCalendar(viewModel: WorkViewModel, currentMonth: LocalDate, daysInMonth:
     val sharedPreferences = context.getSharedPreferences("user_preferences", Context.MODE_PRIVATE)
 
     //Retrieve colors from preferences, with default fallback values
-    var workDay1Color by remember {
-        mutableStateOf(
-            Color(
-                sharedPreferences.getInt(
-                    "workDay1Color",
-                    Color.Yellow.toArgb()
-                )
-            )
-        )
-    }
-//    var workDay2Color by remember {
-//        mutableStateOf(
-//            Color(
-//                sharedPreferences.getInt(
-//                    "workDay2Color",
-//                    Color.White.toArgb()
-//                )
-//            )
-//        )
-//    }
-//    var workDay3Color by remember {
-//        mutableStateOf(
-//            Color(
-//                sharedPreferences.getInt(
-//                    "workDay3Color",
-//                    Color.White.toArgb()
-//                )
-//            )
-//        )
-//    }
-    var outlineColor by remember {
-        mutableStateOf(
-            Color(
-                sharedPreferences.getInt(
-                    "outlineColor",
-                    Color.Blue.toArgb()
-                )
-            )
-        )
-    }
+    var workDay1Color by remember { mutableStateOf(Color(sharedPreferences.getInt("workDay1Color", Color.Yellow.toArgb()))) }
 
+    var outlineColor by remember {mutableStateOf(Color(sharedPreferences.getInt("outlineColor", Color.Blue.toArgb()))) }
 
     val firstDayOfMonth = (currentMonth.withDayOfMonth(1).dayOfWeek.value % 7)
 
@@ -82,6 +45,8 @@ fun WorkCalendar(viewModel: WorkViewModel, currentMonth: LocalDate, daysInMonth:
     val currentDay = if (currentMonth.month == LocalDate.now().month && currentMonth.year == LocalDate.now().year) {
         LocalDate.now().dayOfMonth
     } else null
+
+    Log.d("WorkCalendar", "Current workDays: $workDays")
 
     //Whenever the screen is recomposed, ensure it checks if the preferences have changed
     DisposableEffect(Unit) {
@@ -126,12 +91,7 @@ fun WorkCalendar(viewModel: WorkViewModel, currentMonth: LocalDate, daysInMonth:
                         if (day in 1..daysInMonth) {
                             val currentDayColor =  if (day == currentDay) Color(outlineColor.toArgb()) else Color.Transparent
                             val borderColor = Color.Black
-                            val backgroundColor = when {
-                                workDays.contains(day) -> Color(workDay1Color.toArgb())//WorkDays
-                                //work2Days.contains(day) -> Color(workDay2Color)
-                                //work3Days.contains(day) -> Color(workDay3Color)
-                                else -> Color.LightGray
-                            }
+                            val backgroundColor = if (day in workDays) Color(workDay1Color.toArgb()) else Color.LightGray
                             Box(
                                 modifier = Modifier
                                     .size(48.dp)

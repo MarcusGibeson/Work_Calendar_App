@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -27,69 +28,43 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.example.work_calendar_app.data.models.WorkDetails
 import com.example.work_calendar_app.data.models.WorkEntry
 import com.example.work_calendar_app.viewmodels.WorkViewModel
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
+
 @Composable
-fun WorkEntriesList(viewModel: WorkViewModel, workEntries: MutableMap<Long, WorkEntry>, currentMonth: LocalDate) {
+fun WorkEntriesList(viewModel: WorkViewModel, workEntries: Map<Long, WorkEntry>, currentMonth: LocalDate) {
     //Dialog state to show or hide the details dialog
     var showDialog by remember { mutableStateOf(false) }
     var selectedWorkEntry by remember { mutableStateOf<WorkEntry?>(null) }
 
     var workEntriesChanged by remember { mutableStateOf(0) }
+    var entryEdited by remember { mutableStateOf(false) }
+
 
     //Extracting the current year and month for date formatting
     val currentYear = currentMonth.year
     val currentMonthValue = currentMonth.monthValue
 
     val context = LocalContext.current
-    val sharedPreferences =
-        context.getSharedPreferences("user_preferences", Context.MODE_PRIVATE)
+    val sharedPreferences = context.getSharedPreferences("user_preferences", Context.MODE_PRIVATE)
 
     var baseTextColor by remember {
-        mutableStateOf(
-            Color(
-                sharedPreferences.getInt(
-                    "baseTextColor",
-                    Color.Black.toArgb()
-                )
-            )
-        )
+        mutableStateOf(Color(sharedPreferences.getInt("baseTextColor", Color.Black.toArgb())))
     }
 
     var detailsTextColor by remember {
-        mutableStateOf(
-            Color(
-                sharedPreferences.getInt(
-                    "detailsTextColor",
-                    Color.Black.toArgb()
-                )
-            )
-        )
+        mutableStateOf(Color(sharedPreferences.getInt("detailsTextColor", Color.Black.toArgb())))
     }
     var detailsDateColor by remember {
-        mutableStateOf(
-            Color(
-                sharedPreferences.getInt(
-                    "detailsDateColor",
-                    Color.Blue.toArgb()
-                )
-            )
-        )
+        mutableStateOf(Color(sharedPreferences.getInt("detailsDateColor", Color.Blue.toArgb())))
     }
     var detailsWageColor by remember {
-        mutableStateOf(
-            Color(
-                sharedPreferences.getInt(
-                    "detailsWageColor",
-                    Color.Red.toArgb()
-                )
-            )
-        )
+        mutableStateOf(Color(sharedPreferences.getInt("detailsWageColor", Color.Red.toArgb())))
     }
+
 
     //Refresh on color preference change
     DisposableEffect(Unit) {
@@ -146,7 +121,6 @@ fun WorkEntriesList(viewModel: WorkViewModel, workEntries: MutableMap<Long, Work
         Log.d("onSave", "updatedEntry.tips: ${updatedEntry.tips}")
         viewModel.saveOrUpdateWorkEntry(updatedEntry, onSuccess = {
             showDialog = false
-            workEntries[updatedEntry.id] = updatedEntry
             onAddOrUpdateOrDeleteEntry()
             Log.d("onSave", "Successfully updated entry")
         }, onError = {
@@ -156,52 +130,50 @@ fun WorkEntriesList(viewModel: WorkViewModel, workEntries: MutableMap<Long, Work
 
     val onDeleteEntry: () -> Unit = {
         selectedWorkEntry?.let { entryToDelete ->
-            val isSuccess = viewModel.deleteWorkEntry(entryToDelete.id)
-            if (isSuccess) {
-                //Remove the entry from workEntries after successful deletion
-                workEntries.remove(entryToDelete.id)
+            viewModel.deleteWorkEntry(entryToDelete.id)
+            showDialog = false
+            Log.d("WorkEntries", "Successfully deleted entry")
+            onAddOrUpdateOrDeleteEntry()
+        } ?: Log.e("WorkEntries", "Failed to delete entry")
+    }
 
-                showDialog = false
-                Log.d("WorkEntries", "Successfully deleted entry")
-                onAddOrUpdateOrDeleteEntry()
-            }else {
-                Log.e("WorkEntries", "Failed to delete entry")
-            }
+    //Generate work entries for the current month
+    val workEntryList: List<WorkEntry> = workEntries.mapNotNull { (id, workEntry) ->
+        try {
+            val workDate = workEntry.workDate
+            val day = workDate.substring(8, 10).toInt()
+            Log.d("WorkDetailsList", "Checking workEntry: ID: $id, Date: $workDate")
+
+            //Create a Localdate for the current year, current month, and specific day
+            val workDateLocal = LocalDate.parse(workEntry.workDate, DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+            val formattedWorkDate = workDateLocal.format(DateTimeFormatter.ofPattern("MMM dd, yyyy"))
+            Log.d("WorkDetailsList", "Valid workEntry: ID: $id, Date: $workDateLocal")
+            Log.d("WorkDetailsList", "Verifying date: ID: $id, Date: $formattedWorkDate")
+            WorkEntry(
+                id = workEntry.id,
+                workDate = formattedWorkDate,
+                startTime = workEntry.startTime,
+                endTime = workEntry.endTime,
+                breakTime = workEntry.breakTime,
+                payType = workEntry.payType,
+                payRate = workEntry.payRate,
+                overtimeRate = workEntry.overtimeRate,
+                commissionRate = workEntry.commissionRate,
+                totalCommissionAmount = workEntry.totalCommissionAmount,
+                commissionDetails = workEntry.commissionDetails,
+                salaryAmount = workEntry.salaryAmount,
+                dailySalary = workEntry.dailySalary,
+                tips = workEntry.tips,
+                netEarnings = workEntry.netEarnings
+            ).also { Log.d("WorkDetailsList", "Created WorkDetails: ID: $id, Date: $workDateLocal") }
+        } catch (e: Exception) {
+            Log.e("WorkEntryList", "Error parsing work entry date for ID: $id")
+            null
         }
     }
 
-    //Generate work details for the current month
-    val workDetailsList = workEntries.mapNotNull { (id, workEntry) ->
-        val workDate = workEntry.workDate
-        val day = workDate.substring(8, 10).toInt()
-        Log.d("WorkDetailsList", "Checking workEntry: ID: $id, Date: $workDate")
-
-        //Create a Localdate for the current year, current month, and specific day
-        val workDateLocal = LocalDate.parse(workEntry.workDate, DateTimeFormatter.ofPattern("yyyy-MM-dd"))
-        val formattedWorkDate = workDateLocal.format(DateTimeFormatter.ofPattern("MMM dd, yyyy"))
-        Log.d("WorkDetailsList", "Valid workEntry: ID: $id, Date: $workDateLocal")
-        Log.d("WorkDetailsList", "Verifying date: ID: $id, Date: $formattedWorkDate")
-        WorkDetails(
-            id = workEntry.id,
-            workDate = formattedWorkDate,
-            startTime = workEntry.startTime,
-            endTime = workEntry.endTime,
-            breakTime = workEntry.breakTime.toString(),
-            payType = workEntry.payType,
-            payRate = workEntry.payRate,
-            commissionSales = workEntry.totalCommissionAmount,
-            dailySalary = workEntry.dailySalary,
-            tips = workEntry.tips,
-            netEarnings = workEntry.netEarnings
-        ).also { Log.d("WorkDetailsList", "Created WorkDetails: ID: $id, Date: $workDateLocal") }
-    }
-
-    // Log the size of the work details list
-    Log.d("WorkEntriesList", "WorkDetailsList size: ${workDetailsList.size}")
-
     //Calculate total wage
     val totalWage = workEntryList.sumOf {it.netEarnings}
-
 
     Column(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
@@ -210,7 +182,7 @@ fun WorkEntriesList(viewModel: WorkViewModel, workEntries: MutableMap<Long, Work
                 .weight(1f)
                 .padding(end = 8.dp) //padding for scrollbar
         ) {
-            items(workEntryList) { workDetail ->
+            items(workEntryList) { workEntry ->
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -220,17 +192,17 @@ fun WorkEntriesList(viewModel: WorkViewModel, workEntries: MutableMap<Long, Work
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "${workDetail.workDate}:",
+                            text = "${workEntry.workDate}:",
                             modifier = Modifier.weight(1f),
                             color = detailsDateColor
                         )
                         Text(
-                            text = " ${workDetail.startTime} - ${workDetail.endTime}",
+                            text = " ${workEntry.startTime} - ${workEntry.endTime}",
                             color = detailsTextColor
                         )
                     }
                     Text(
-                        text = "$${workDetail.netEarnings}",
+                        text = "$${workEntry.netEarnings}",
                         modifier = Modifier.padding(start = 8.dp, end = 16.dp),
                         color = detailsWageColor
                     )
@@ -239,7 +211,7 @@ fun WorkEntriesList(viewModel: WorkViewModel, workEntries: MutableMap<Long, Work
                         text = "Details",
                         modifier = Modifier
                             .clickable {
-                                val workDateKey = workDetail.id
+                                val workDateKey = workEntry.id
                                 selectedWorkEntry = workEntries[workDateKey]
                                 showDialog = true
                                 // Log when a work entry is selected for details

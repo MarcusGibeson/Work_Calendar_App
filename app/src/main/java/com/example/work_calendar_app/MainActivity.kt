@@ -31,7 +31,7 @@ import com.example.work_calendar_app.viewmodels.WorkViewModelFactory
 class MainActivity : AppCompatActivity() {
 
     private lateinit var dbHelper: WorkScheduleDatabaseHelper
-    private val workRepository = WorkRepository(dbHelper)
+    private lateinit var workRepository: WorkRepository
 
     private val workViewModel: WorkViewModel by viewModels {
         WorkViewModelFactory(workRepository)
@@ -49,6 +49,9 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        dbHelper = WorkScheduleDatabaseHelper(this)
+        workRepository = WorkRepository(dbHelper)
 
         addWorkActivityLauncher = registerForActivityResult(
             ActivityResultContracts.StartActivityForResult()

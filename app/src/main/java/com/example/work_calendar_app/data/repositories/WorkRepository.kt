@@ -32,11 +32,11 @@ class WorkRepository (private val dbHelper: WorkScheduleDatabaseHelper) {
             Log.e("WorkRepository", "Cursor is null. Database query failed for date: $date")
         }
 
-        var workEntry = WorkEntry(0, "","","",0,"",0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+        var workEntry = WorkEntry(0, "","","",0,"",0.0,0.0,0,listOf(0.0),0.0,0.0,0.0,0.0,0.0)
 
         if (cursor != null && cursor.moveToFirst()) {
             try {
-                val workEntry = cursorToWorkEntry(cursor)
+                workEntry = cursorToWorkEntry(cursor) ?: workEntry
             } catch (e: Exception) {
                 Log.e("WorkRepository", "Error extracting work entry from cursor: ${e.message}")
             }

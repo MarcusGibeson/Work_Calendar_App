@@ -27,6 +27,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -44,8 +45,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.work_calendar_app.AddWorkActivity
+import com.example.work_calendar_app.UserSettingsActivity
 import com.example.work_calendar_app.data.models.WorkDetails
 import com.example.work_calendar_app.data.models.WorkEntry
+import com.example.work_calendar_app.ui.composables.workdetails.WorkEntriesList
 import com.example.work_calendar_app.viewmodels.WorkViewModel
 import kotlinx.coroutines.flow.StateFlow
 import java.time.LocalDate
@@ -57,6 +60,17 @@ fun CalendarContent(viewModel: WorkViewModel, modifier: Modifier, workEntries: S
 
 
     Box(modifier = Modifier) {
+        val isLoading by viewModel.loading.collectAsState()
+        val errorMessage by viewModel.errorMessage.collectAsState()
+
+        if (isLoading) {
+            CircularProgressIndicator()
+        }
+
+        errorMessage?.let {
+            Text(text = it, color = Color.Red)
+        }
+
         var currentMonth by remember { mutableStateOf(LocalDate.now()) }
         var showPopup by remember { mutableStateOf(false) }
         var selectedDay by remember { mutableStateOf(-1) }
@@ -64,11 +78,13 @@ fun CalendarContent(viewModel: WorkViewModel, modifier: Modifier, workEntries: S
         var secondSelectedDate by remember { mutableStateOf<String?>(null) }
         var isSelectingRange by remember { mutableStateOf(false) }
 
+        var workEntriesChanged by remember { mutableStateOf(0) }
+
         //Store fetched work details for the selected day
-        var workEntriesForPopup by remember { mutableStateOf(WorkDetails(0,"","","","", "",0.0, 0.0,0.0,0.0, 0.0)) }
+        var workEntryForPopup by remember { mutableStateOf(WorkEntry(0,"","","",0, "",0.0, 0.0,0,listOf(0.0), 0.0, 0.0, 0.0, 0.0, 0.0)) }
 
         //Store fetched work details for the selected range
-        val workDetailsList = remember { mutableStateListOf<WorkDetails>() }
+        val workEntriesList = remember { mutableStateListOf<WorkEntry>() }
 
         //Fetch context and database-related work entries
         val context = LocalContext.current
@@ -76,7 +92,7 @@ fun CalendarContent(viewModel: WorkViewModel, modifier: Modifier, workEntries: S
         val firstDayOfMonth = currentMonth.withDayOfMonth(1).dayOfWeek.value
 
         //Dummy data for workDays and workEntries
-        val workDays = remember { mutableStateListOf<Int>() }
+        val workDays by remember { derivedStateOf { viewModel.workDays } }
         val workEntries by viewModel.workEntries.collectAsState()
         val sharedPreferences = context.getSharedPreferences("user_preferences", Context.MODE_PRIVATE)
 
@@ -130,8 +146,10 @@ fun CalendarContent(viewModel: WorkViewModel, modifier: Modifier, workEntries: S
 
         //Fetch data from database in a LaunchedEffect
         LaunchedEffect(currentMonth, workEntriesChanged) {
-            workDays.clear()
-            loadAllWorkSchedules(workDays, workEntries, currentMonth.monthValue, currentMonth.year)
+            viewModel.loadAllWorkEntries(
+                currentMonth = currentMonth.monthValue,
+                currentYear = currentMonth.year
+            )
             Log.d("WorkDays", "Current month: ${currentMonth.month} ${currentMonth.year}, Work Days: $workDays")
         }
 
@@ -140,29 +158,24 @@ fun CalendarContent(viewModel: WorkViewModel, modifier: Modifier, workEntries: S
             selectedDay = -1
         }
 
-        var isLoading by remember { mutableStateOf(true) }
-
         //Fetch the data for the selected day
         LaunchedEffect(selectedDay, entryEdited) {
             if (selectedDay != -1 && !isSelectingRange) {
-                isLoading = true
-                workDetailsForPopup = WorkDetails(0, "", "", "", "", "", 0.0, 0.0 ,0.0, 0.0, 0.0)
+                workEntryForPopup = WorkEntry(0,"","","",0, "",0.0, 0.0,0,listOf(0.0), 0.0, 0.0, 0.0, 0.0, 0.0)
 
                 val formattedDate = String.format("%04d-%02d-%02d", currentMonth.year, currentMonth.monthValue, selectedDay)
                 Log.d("MainActivity","formatted date: $formattedDate")
-                val workDetails = getWorkDetailsForDate(context, formattedDate)
 
-                //check if work details are valid
-                workDetailsForPopup = workDetails
-                if (workDetails.startTime === "" && workDetails.endTime === "") {
-                    Log.d("MainActivity","No valid work details for popup")
-                } else {
-                    Log.d("Popup","Work details: $workDetails")
-                    showPopup = true
-                    isLoading = false
+                viewModel.getWorkEntryForDate(formattedDate) { workEntry ->
+                    if (workEntry != null) {
+                        workEntryForPopup = workEntry
+                        Log.d("Popup", "Work details: $workEntry")
+                        showPopup = true
+                    } else {
+                        Log.d("CalendarContent", "No valid work details for popup")
+                    }
                 }
             }
-
             onEntryEditedChange(false)
         }
 
@@ -291,7 +304,10 @@ fun CalendarContent(viewModel: WorkViewModel, modifier: Modifier, workEntries: S
                         } else if (secondSelectedDate == null) {
                             secondSelectedDate = "$monthValue/$day/$yearValue"
                             Toast.makeText(context, "Second date selected: $secondSelectedDate", Toast.LENGTH_SHORT).show()
-                            displayWorkTimesForSelectedDates(firstSelectedDate!!, secondSelectedDate!!, workEntries)
+
+                            viewModel.fetchWorkEntriesBetweenDates(firstSelectedDate!!, secondSelectedDate!!) {  workEntries ->
+
+                            }
                             isSelectingRange = false
                         }
                     } else {
@@ -312,8 +328,7 @@ fun CalendarContent(viewModel: WorkViewModel, modifier: Modifier, workEntries: S
                     //Add work schedule button
                     Button(
                         onClick = {
-                            val intent = Intent(this@MainActivity, AddWorkActivity::class.java)
-                            addWorkActivityLauncher.launch(intent)
+                            onAddWorkActivityClicked(context)
                         },
                         modifier = Modifier
                             .padding(start = 0.dp, end = 16.dp),
@@ -333,26 +348,42 @@ fun CalendarContent(viewModel: WorkViewModel, modifier: Modifier, workEntries: S
                     modifier = Modifier.padding(vertical = 0.dp),
                     color = baseTextColor
                 )
-                WorkEntriesList(workEntries, currentMonth)
+                WorkEntriesList(viewModel, workEntries, currentMonth)
 
                 //Popup for displaying details
                 if(isLoading) {
                     CircularProgressIndicator()
                 } else if (showPopup && selectedDay != -1 && !isSelectingRange) {
+                    Log.d("DayDetailsPopup", "Selected Day: $selectedDay")
+                    Log.d("DayDetailsPopup", "Start Time: ${workEntryForPopup.startTime}")
+                    Log.d("DayDetailsPopup", "End Time: ${workEntryForPopup.endTime}")
+                    Log.d("DayDetailsPopup", "Break Time: ${workEntryForPopup.breakTime}")
+                    Log.d("DayDetailsPopup", "Pay Type: ${workEntryForPopup.payType}")
+                    Log.d("DayDetailsPopup", "Pay Rate: ${workEntryForPopup.payRate}")
+                    Log.d("DayDetailsPopup", "Commission Sales: ${workEntryForPopup.totalCommissionAmount}")
+                    Log.d("DayDetailsPopup", "Daily Salary: ${workEntryForPopup.dailySalary}")
+                    Log.d("DayDetailsPopup", "Tips: ${workEntryForPopup.tips}")
+                    Log.d("DayDetailsPopup", "Net Earnings: ${workEntryForPopup.netEarnings}")
                     DayDetailsPopup(
                         selectedDay = selectedDay,
-                        startTime = workEntriesForPopup.startTime,
-                        endTime = workEntriesForPopup.endTime,
-                        breakTime = workEntriesForPopup.breakTime,
-                        payType = workEntriesForPopup.payType,
-                        payRate = workEntriesForPopup.payRate,
-                        commissionSales = workEntriesForPopup.commissionSales,
-                        dailySalary = workEntriesForPopup.dailySalary,
-                        tips = workEntriesForPopup.tips,
-                        netEarnings = workEntriesForPopup.netEarnings
+                        startTime = workEntryForPopup.startTime,
+                        endTime = workEntryForPopup.endTime,
+                        breakTime = workEntryForPopup.breakTime.toString(),
+                        payType = workEntryForPopup.payType,
+                        payRate = workEntryForPopup.payRate,
+                        commissionSales = workEntryForPopup.totalCommissionAmount,
+                        dailySalary = workEntryForPopup.dailySalary,
+                        tips = workEntryForPopup.tips,
+                        netEarnings = workEntryForPopup.netEarnings
                     ) { showPopup = false }
                 }
             }
         }
     }
 }
+
+private fun onAddWorkActivityClicked(context: Context) {
+    val intent = Intent(context, AddWorkActivity::class.java)
+    context.startActivity(intent)
+}
+
