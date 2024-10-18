@@ -45,8 +45,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.work_calendar_app.AddWorkActivity
-import com.example.work_calendar_app.UserSettingsActivity
-import com.example.work_calendar_app.data.models.WorkDetails
 import com.example.work_calendar_app.data.models.WorkEntry
 import com.example.work_calendar_app.ui.composables.workdetails.WorkEntriesList
 import com.example.work_calendar_app.viewmodels.WorkViewModel
