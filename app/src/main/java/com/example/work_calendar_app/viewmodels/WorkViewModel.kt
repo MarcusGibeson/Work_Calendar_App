@@ -3,8 +3,11 @@ package com.example.work_calendar_app.viewmodels
 import android.os.Parcel
 import android.os.Parcelable
 import android.util.Log
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -19,6 +22,9 @@ import kotlinx.coroutines.withContext
 import java.time.LocalDate
 
 class WorkViewModel (private val workRepository: WorkRepository) : ViewModel() {
+
+    //State to toggle selecting range
+    var isSelectingRange by mutableStateOf(false)
 
     //State to hold the currently selected date
     private val _selectedDate = MutableStateFlow<Long?>(null)
@@ -200,6 +206,11 @@ class WorkViewModel (private val workRepository: WorkRepository) : ViewModel() {
         }
     }
 
+
+    //Function to toggle selecting range / single day
+    fun toggleRangeSelection() {
+        isSelectingRange = !isSelectingRange
+    }
 
 
 }

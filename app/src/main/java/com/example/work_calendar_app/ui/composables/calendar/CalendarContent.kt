@@ -29,7 +29,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -48,14 +48,28 @@ import com.example.work_calendar_app.AddWorkActivity
 import com.example.work_calendar_app.data.models.WorkEntry
 import com.example.work_calendar_app.ui.composables.workdetails.WorkEntriesList
 import com.example.work_calendar_app.viewmodels.WorkViewModel
-import kotlinx.coroutines.flow.StateFlow
 import java.time.LocalDate
 import java.time.Month
 import java.time.format.DateTimeFormatter
 
 @Composable
-fun CalendarContent(viewModel: WorkViewModel, modifier: Modifier, workEntries: StateFlow<Map<Long, WorkEntry>>, onMonthChanged: (Month) -> Unit, entryEdited: Boolean, onEntryEditedChange: (Boolean) -> Unit, onWorkEntriesChanged: () -> Unit) {
+fun CalendarContent(
+    viewModel: WorkViewModel,
+    modifier: Modifier,
+    isSelectingRange: Boolean,
+    firstSelectedDate: String?,
+    secondSelectedDate: String?,
+    onSelectingRangeChange: (Boolean) -> Unit,
+    onFirstSelectedDateChange: (String?) -> Unit,
+    onSecondSelectedDateChange: (String?) -> Unit,
+    onMonthChanged: (Month) -> Unit,
+    entryEdited: Boolean,
+    onEntryEditedChange: (Boolean) -> Unit,
+    onWorkEntriesChanged: () -> Unit
+) {
 
+    Log.d("CalendarContent", "isSelectingRange in CalendarContent: $isSelectingRange")
+    Log.d("Recomposition", "CalendarContent recomposed")
 
     Box(modifier = Modifier) {
         val isLoading by viewModel.loading.collectAsState()
@@ -71,23 +85,16 @@ fun CalendarContent(viewModel: WorkViewModel, modifier: Modifier, workEntries: S
 
         var currentMonth by remember { mutableStateOf(LocalDate.now()) }
         var showPopup by remember { mutableStateOf(false) }
-        var selectedDay by remember { mutableStateOf(-1) }
-        var firstSelectedDate by remember { mutableStateOf<String?>(null) }
-        var secondSelectedDate by remember { mutableStateOf<String?>(null) }
-        var isSelectingRange by remember { mutableStateOf(false) }
+        var selectedDay by remember { mutableIntStateOf(-1) }
 
-        var workEntriesChanged by remember { mutableStateOf(0) }
+        val workEntriesChanged by remember { mutableIntStateOf(0) }
 
         //Store fetched work details for the selected day
         var workEntryForPopup by remember { mutableStateOf(WorkEntry(0,"","","",0, "",0.0, 0.0,0,listOf(0.0), 0.0, 0.0, 0.0, 0.0, 0.0)) }
 
-        //Store fetched work details for the selected range
-        val workEntriesList = remember { mutableStateListOf<WorkEntry>() }
-
         //Fetch context and database-related work entries
         val context = LocalContext.current
         val daysInMonth = currentMonth.lengthOfMonth()
-        val firstDayOfMonth = currentMonth.withDayOfMonth(1).dayOfWeek.value
 
         //Dummy data for workDays and workEntries
         val workDays by remember { derivedStateOf { viewModel.workDays } }
@@ -133,15 +140,6 @@ fun CalendarContent(viewModel: WorkViewModel, modifier: Modifier, workEntries: S
             }
         }
 
-        //Initial load
-        LaunchedEffect(Unit) {
-            viewModel.loadAllWorkEntries(
-                currentMonth = currentMonth.monthValue,
-                currentYear = currentMonth.year
-            )
-            Log.d("Workdays", "Initial load - Work Days: $workDays")
-        }
-
         //Fetch data from database in a LaunchedEffect
         LaunchedEffect(currentMonth, workEntriesChanged) {
             viewModel.loadAllWorkEntries(
@@ -177,6 +175,11 @@ fun CalendarContent(viewModel: WorkViewModel, modifier: Modifier, workEntries: S
             onEntryEditedChange(false)
         }
 
+        //Log to monitor selecting range change
+        LaunchedEffect(isSelectingRange) {
+            Log.d("CalendarContent", "isSelectingRange toggled to: $isSelectingRange")
+        }
+
 
         //Box around calendar to detect swipe gestures
         val screenWidth = LocalConfiguration.current.screenWidthDp
@@ -199,7 +202,7 @@ fun CalendarContent(viewModel: WorkViewModel, modifier: Modifier, workEntries: S
                 .background(brush = gradientBrush)
                 .pointerInput(Unit) {
                     detectHorizontalDragGestures(
-                        onHorizontalDrag = { change, dragAmount ->
+                        onHorizontalDrag = { _, dragAmount ->
                             accumulatedDrag += dragAmount //Accumulate drag distance
 
                             //Check if the accumulated drag surpasses the swipe threshold
@@ -290,24 +293,75 @@ fun CalendarContent(viewModel: WorkViewModel, modifier: Modifier, workEntries: S
                     }
                 }
 
+                fun handleRangeSelection(
+                    day: Int,
+                    monthValue: Int,
+                    yearValue: Int,
+                    firstSelectedDate: String?,
+                    secondSelectedDate: String?,
+                    onFirstSelectedDateChange: (String?) -> Unit,
+                    onSecondSelectedDateChange: (String?) -> Unit,
+                    onSelectingRangeChange: (Boolean) -> Unit,
+                    onRangeComplete: (String, String) -> Unit
+                ) {
+                    Log.d("RangeSelectionHandler" , "Handle range selection activated")
+                if (firstSelectedDate == null) {
+                    onFirstSelectedDateChange("$monthValue/$day/$yearValue")
+                    Log.d("Calendar", "First selected date: $monthValue/$day/$yearValue")
+                    Toast.makeText(context, "First date selected: $monthValue/$day/$yearValue", Toast.LENGTH_SHORT).show()
+                } else if (secondSelectedDate == null) {
+                    val selectedDate = "$monthValue/$day/$yearValue"
+                    onSecondSelectedDateChange(selectedDate)
+                    Log.d("Calendar", "First selected date: $monthValue/$day/$yearValue")
+                    Toast.makeText(context, "Second date selected: $monthValue/$day/$yearValue", Toast.LENGTH_SHORT).show()
+
+                    // Log values before fetching work entries
+                    Log.d("Calendar", "Before fetching work entries: firstSelectedDate = $firstSelectedDate, secondSelectedDate = $monthValue/$day/$yearValue")
+
+                    onRangeComplete(firstSelectedDate, selectedDate)
+
+                    onSelectingRangeChange(false)
+                }
+            }
+
                 //Custom Work Calendar
-                WorkCalendar(viewModel, currentMonth, daysInMonth = daysInMonth, workDays = workDays.toList()) { day ->
+                WorkCalendar(
+                    viewModel,
+                    currentMonth,
+                    daysInMonth = daysInMonth,
+                    workDays = workDays.toList(),
+                    isSelectingRange = isSelectingRange,
+                    onSelectingRangeChange = { newIsSelectingRange ->
+                        viewModel.isSelectingRange = newIsSelectingRange
+                    },
+                ) { day ->
+                    Log.d("WorkCalendar", "onDaySelected triggered: Day: $day")
+
+                    // Add log for current state of first and second selected dates
+                    Log.d("WorkCalendar", "FirstSelectedDate: $firstSelectedDate, SecondSelectedDate: $secondSelectedDate")
+                    Log.d("WorkCalendar", "isSelectingRange: $isSelectingRange")
+
                     if (isSelectingRange) {
                         val monthValue = currentMonth.monthValue
                         val yearValue = currentMonth.year
+                        Log.d("WorkCalendar", "isSelectingRange is TRUE. Month value: $monthValue, Year value: $yearValue")
 
-                        if (firstSelectedDate == null) {
-                            firstSelectedDate = "$monthValue/$day/$yearValue"
-                            Toast.makeText(context, "First date selected: $firstSelectedDate", Toast.LENGTH_SHORT).show()
-                        } else if (secondSelectedDate == null) {
-                            secondSelectedDate = "$monthValue/$day/$yearValue"
-                            Toast.makeText(context, "Second date selected: $secondSelectedDate", Toast.LENGTH_SHORT).show()
+                        Log.d("Calendar", "Checking firstSelectedDate: $firstSelectedDate")
+                        Log.d("Calendar", "Checking secondSelectedDate: $secondSelectedDate")
 
-                            viewModel.fetchWorkEntriesBetweenDates(firstSelectedDate!!, secondSelectedDate!!) {  workEntries ->
-
+                        handleRangeSelection(
+                            day = day,
+                            monthValue = currentMonth.monthValue,
+                            yearValue = currentMonth.year,
+                            firstSelectedDate = firstSelectedDate,
+                            secondSelectedDate = secondSelectedDate,
+                            onFirstSelectedDateChange = onFirstSelectedDateChange,
+                            onSecondSelectedDateChange = onSecondSelectedDateChange,
+                            onSelectingRangeChange = onSelectingRangeChange,
+                            onRangeComplete = { startDate, endDate ->
+                                viewModel.fetchWorkEntriesBetweenDates(startDate, endDate) { workEntries ->  }
                             }
-                            isSelectingRange = false
-                        }
+                        )
                     } else {
                         selectedDay = day
                         showPopup = true
@@ -384,4 +438,3 @@ private fun onAddWorkActivityClicked(context: Context) {
     val intent = Intent(context, AddWorkActivity::class.java)
     context.startActivity(intent)
 }
-

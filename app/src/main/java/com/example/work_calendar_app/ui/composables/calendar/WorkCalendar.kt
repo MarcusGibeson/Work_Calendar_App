@@ -28,9 +28,11 @@ import com.example.work_calendar_app.viewmodels.WorkViewModel
 import java.time.LocalDate
 
 @Composable
-fun WorkCalendar(viewModel: WorkViewModel, currentMonth: LocalDate, daysInMonth: Int, workDays: List<Int>, onDaySelected: (Int) -> Unit) {
+fun WorkCalendar(viewModel: WorkViewModel, currentMonth: LocalDate, daysInMonth: Int, workDays: List<Int>, isSelectingRange: Boolean, onSelectingRangeChange: (Boolean) -> Unit, onDaySelected: (Int) -> Unit) {
     val context = LocalContext.current
     val sharedPreferences = context.getSharedPreferences("user_preferences", Context.MODE_PRIVATE)
+
+    Log.d("Recomposition", "WorkCalendar recomposed")
 
     //Retrieve colors from preferences, with default fallback values
     var workDay1Color by remember { mutableStateOf(Color(sharedPreferences.getInt("workDay1Color", Color.Yellow.toArgb()))) }
@@ -105,7 +107,9 @@ fun WorkCalendar(viewModel: WorkViewModel, currentMonth: LocalDate, daysInMonth:
                                     .background(backgroundColor)
                                     .pointerInput(Unit) {
                                         detectTapGestures(
-                                            onTap = { onDaySelected(day) },
+                                            onTap = {
+                                                Log.d("Calendar", "Day tapped: $day")
+                                                onDaySelected(day) },
                                             onLongPress = {
                                                 //handle the long press and launch AddActivity
                                                 val intent = Intent(context, AddWorkActivity::class.java)
@@ -146,7 +150,7 @@ fun WorkCalendar(viewModel: WorkViewModel, currentMonth: LocalDate, daysInMonth:
 
 @Composable
 fun DayDetailsPopup(selectedDay: Int, startTime: String, endTime: String, breakTime: String, payType: String, payRate: Double, commissionSales: Double, dailySalary: Double, tips: Double, netEarnings: Double, onDismiss: () -> Unit) {
-    val hasWorkSchedule = !startTime.isNullOrEmpty() && !endTime.isNullOrEmpty() && !breakTime.isNullOrEmpty() && netEarnings != null
+    val hasWorkSchedule = startTime.isNotEmpty() && endTime.isNotEmpty() && breakTime.isNotEmpty()
 
     AlertDialog(
         onDismissRequest = onDismiss,

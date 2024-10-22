@@ -1,8 +1,10 @@
 package com.example.work_calendar_app.ui.composables.screens
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -20,7 +22,9 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -40,16 +44,20 @@ import com.example.work_calendar_app.ui.composables.calendar.CalendarContent
 import com.example.work_calendar_app.viewmodels.WorkViewModel
 import java.time.LocalDate
 
+@SuppressLint("MutableCollectionMutableState")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CalendarScreen(viewModel: WorkViewModel) {
+
+    Log.d("Recomposition", "CalendarScreen recomposed")
+
     var workEntries by remember { mutableStateOf(mutableMapOf<Long, WorkEntry>()) }
     var entryEdited by remember { mutableStateOf(false) }
-    var workEntriesChanged by remember { mutableStateOf(0) }
-    var selectedDay by remember { mutableStateOf(-1) }
-    var firstSelectedDate by remember { mutableStateOf<String?>(null) }
-    var secondSelectedDate by remember { mutableStateOf<String?>(null) }
-    var isSelectingRange by remember { mutableStateOf(false) }
+    var workEntriesChanged by remember { mutableIntStateOf(0) }
+    var selectedDay by remember { mutableIntStateOf(-1) }
+    var firstSelectedDate: String? by remember { mutableStateOf(null) }
+    var secondSelectedDate: String? by remember { mutableStateOf(null) }
+
     var currentMonth by remember { mutableStateOf(LocalDate.now()) }
     val context = LocalContext.current
     val sharedPreferences =
@@ -59,6 +67,19 @@ fun CalendarScreen(viewModel: WorkViewModel) {
 
     var baseTextColor by remember { mutableStateOf(Color(sharedPreferences.getInt("baseTextColor", Color.Black.toArgb()))) }
 
+    //Use isSelectingRange from the viewModel
+    val isSelectingRange = viewModel.isSelectingRange
+
+    //Function to toggle selecting range using viewModel
+    val onToggleSelectingRange = {
+        viewModel.toggleRangeSelection()
+        //Reset other states
+        firstSelectedDate = null
+        secondSelectedDate= null
+        selectedDay = -1
+    }
+
+
     fun refreshWorkEntries() {
         workEntriesChanged++
     }
@@ -66,6 +87,11 @@ fun CalendarScreen(viewModel: WorkViewModel) {
     fun onAddOrUpdateOrDeleteEntry() {
         refreshWorkEntries()
         entryEdited = true
+    }
+
+    //Log to monitor selecting range change
+    LaunchedEffect(isSelectingRange) {
+        Log.d("CalendarScreen", "isSelectingRange toggled to: $isSelectingRange")
     }
 
     //Whenever the screen is recomposed, ensure it checks if the preferences have changed
@@ -88,6 +114,8 @@ fun CalendarScreen(viewModel: WorkViewModel) {
         }
     }
 
+    Log.d("CalendarScreen", "isSelectingRange in CalendarScreen: $isSelectingRange")
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -106,10 +134,7 @@ fun CalendarScreen(viewModel: WorkViewModel) {
                 },
                 navigationIcon = {
                     IconButton(onClick = {
-                        isSelectingRange = !isSelectingRange
-                        firstSelectedDate = null
-                        secondSelectedDate = null
-                        selectedDay = -1
+                        onToggleSelectingRange()
                     }, modifier = Modifier.width(80.dp)) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -146,7 +171,14 @@ fun CalendarScreen(viewModel: WorkViewModel) {
             CalendarContent(
                 viewModel,
                 modifier = Modifier.padding(innerPadding),
-                workEntries = viewModel.workEntries,
+                isSelectingRange = isSelectingRange,
+                firstSelectedDate = firstSelectedDate,
+                secondSelectedDate = secondSelectedDate,
+                onSelectingRangeChange = { newIsSelectingRange ->
+                                         viewModel.isSelectingRange = newIsSelectingRange
+                },
+                onFirstSelectedDateChange = { newDate -> firstSelectedDate = newDate },
+                onSecondSelectedDateChange = { newDate -> secondSelectedDate = newDate },
                 onMonthChanged = { newMonth ->
                     currentMonth = currentMonth.withMonth(newMonth.value)
                     viewModel.fetchWorkEntriesForMonth(currentMonth.month.value, currentMonth.year)
@@ -154,6 +186,7 @@ fun CalendarScreen(viewModel: WorkViewModel) {
                 entryEdited = entryEdited,
                 onEntryEditedChange = { isEdited -> entryEdited = isEdited }
             ) { refreshWorkEntries() }
+
         }
     )
 }
