@@ -71,6 +71,12 @@ fun CalendarScreen(viewModel: WorkViewModel) {
 
     var baseTextColor by remember { mutableStateOf(Color(sharedPreferences.getInt("baseTextColor", Color.Black.toArgb()))) }
 
+    var workDay1Color by remember { mutableStateOf(Color(sharedPreferences.getInt("workDay1Color", Color.Yellow.toArgb()))) }
+    var workDay2Color by remember { mutableStateOf(Color(sharedPreferences.getInt("workDay2Color", Color.Yellow.toArgb()))) }
+    var workDay3Color by remember { mutableStateOf(Color(sharedPreferences.getInt("workDay3Color", Color.Yellow.toArgb()))) }
+    var workDay4Color by remember { mutableStateOf(Color(sharedPreferences.getInt("workDay4Color", Color.Green.toArgb()))) }
+
+
     //Use isSelectingRange from the viewModel
     val isSelectingRange = viewModel.isSelectingRange.observeAsState(initial = false)
     val updatedIsSelectingRange by rememberUpdatedState(isSelectingRange)
@@ -105,6 +111,12 @@ fun CalendarScreen(viewModel: WorkViewModel) {
         jobColorMap[4] = workDay4Color
     }
 
+    //Fetch jobs when the screen is composed
+    LaunchedEffect(Unit) {
+        val jobList = dbHelper.fetchJobsFromDatabase()
+        jobs.value = jobList
+    }
+
     //Log to monitor selecting range change
     LaunchedEffect(isSelectingRange) {
         Log.d("CalendarScreen", "isSelectingRange toggled to: $isSelectingRange.value")
@@ -113,13 +125,25 @@ fun CalendarScreen(viewModel: WorkViewModel) {
     //Whenever the screen is recomposed, ensure it checks if the preferences have changed
     DisposableEffect(Unit) {
         val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-            if (key == "topBarColor") {
-                //Update topBarColor when the preference changes
-                topBarColor =
-                    Color(sharedPreferences.getInt("topBarColor", Color.Blue.toArgb()))
-            } else if (key == "baseTextColor") {
-                baseTextColor =
-                    Color(sharedPreferences.getInt("baseTextColor", Color.Black.toArgb()))
+            when (key) {
+                "topBarColor" -> {
+                    topBarColor = Color(sharedPreferences.getInt("topBarColor", Color.Blue.toArgb()))
+                }
+                "baseTextColor" -> {
+                    baseTextColor = Color(sharedPreferences.getInt("baseTextColor", Color.Black.toArgb()))
+                }
+                "workDay1Color" -> {
+                    workDay1Color = Color(sharedPreferences.getInt("workDay1Color", Color.Yellow.toArgb()))
+                }
+                "workDay2Color" -> {
+                    workDay2Color = Color(sharedPreferences.getInt("workDay2Color", Color.Red.toArgb()))
+                }
+                "workDay3Color" -> {
+                    workDay3Color = Color(sharedPreferences.getInt("workDay3Color", Color.Green.toArgb()))
+                }
+                "workDay4Color" -> {
+                    workDay4Color = Color(sharedPreferences.getInt("workDay4Color", Color.White.toArgb()))
+                }
             }
         }
         sharedPreferences.registerOnSharedPreferenceChangeListener(listener)
@@ -184,6 +208,7 @@ fun CalendarScreen(viewModel: WorkViewModel) {
             )
         },
         content = {innerPadding ->
+
             CalendarContent(
                 viewModel,
                 modifier = Modifier.padding(innerPadding),
@@ -201,7 +226,22 @@ fun CalendarScreen(viewModel: WorkViewModel) {
             ) { refreshWorkEntries() }
 
         }
+
+
     )
+
+    //Show the Job Management Dialog conditionally
+    if (showJobDialog) {
+        JobManagementDialog(
+            onDismiss = { showJobDialog = false },
+            onJobAdded = { jobName ->
+                //Insert the new job into the database
+                dbHelper.insertJob(jobName)
+                Toast.makeText(context, "Job '$jobName' added successfully!", Toast.LENGTH_SHORT).show()
+
+            }
+        )
+    }
 }
 
 private fun onSettingsClicked(context: Context) {
