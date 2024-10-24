@@ -8,6 +8,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -21,10 +22,19 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
 
+
 class WorkViewModel (private val workRepository: WorkRepository) : ViewModel() {
 
     //State to toggle selecting range
-    var isSelectingRange by mutableStateOf(false)
+    private val _isSelectingRange = MutableLiveData(false)
+    val isSelectingRange: LiveData<Boolean> get() = _isSelectingRange
+
+    //States for storing selected date range
+    private val _firstSelectedDate = MutableLiveData<String?>()
+    val firstSelectedDate: LiveData<String?> get() = _firstSelectedDate
+
+    private val _secondSelectedDate = MutableLiveData<String?>()
+    val secondSelectedDate: LiveData<String?> get() = _secondSelectedDate
 
     //State to hold the currently selected date
     private val _selectedDate = MutableStateFlow<Long?>(null)
@@ -54,6 +64,15 @@ class WorkViewModel (private val workRepository: WorkRepository) : ViewModel() {
         //Load all work entries when the ViewModel is created
 
         loadAllWorkEntries(currentMonth, currentYear)
+    }
+
+    //Set selected dates
+    fun setFirstSelectedDate(date: String?) {
+        _firstSelectedDate.value = date
+    }
+
+    fun setSecondSelectedDate(date: String?) {
+        _secondSelectedDate.value = date
     }
 
     //Function to load all work entries from the repository
@@ -125,6 +144,7 @@ class WorkViewModel (private val workRepository: WorkRepository) : ViewModel() {
                 val filteredEntriesMap = workRepository.getWorkEntriesBetweenDates(startDate, endDate)
                 val filteredEntries = filteredEntriesMap.values.toList()
                 withContext(Dispatchers.Main) {
+                    _workEntries.value = filteredEntriesMap
                     onResult(filteredEntries)
                 }
             } catch (e: Exception) {
@@ -138,6 +158,7 @@ class WorkViewModel (private val workRepository: WorkRepository) : ViewModel() {
             }
         }
     }
+
 
     //Function to get work entries in a particular month
     fun fetchWorkEntriesForMonth(month: Int, year: Int) {
@@ -209,7 +230,7 @@ class WorkViewModel (private val workRepository: WorkRepository) : ViewModel() {
 
     //Function to toggle selecting range / single day
     fun toggleRangeSelection() {
-        isSelectingRange = !isSelectingRange
+        _isSelectingRange.value = !(_isSelectingRange.value ?: false)
     }
 
 

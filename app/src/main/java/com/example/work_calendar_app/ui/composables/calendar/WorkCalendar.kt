@@ -28,11 +28,15 @@ import com.example.work_calendar_app.viewmodels.WorkViewModel
 import java.time.LocalDate
 
 @Composable
-fun WorkCalendar(viewModel: WorkViewModel, currentMonth: LocalDate, daysInMonth: Int, workDays: List<Int>, isSelectingRange: Boolean, onSelectingRangeChange: (Boolean) -> Unit, onDaySelected: (Int) -> Unit) {
+fun WorkCalendar(viewModel: WorkViewModel, currentMonth: LocalDate, daysInMonth: Int, workDays: List<Int>, isSelectingRange: Boolean, onDaySelected: (Int) -> Unit) {
+
     val context = LocalContext.current
     val sharedPreferences = context.getSharedPreferences("user_preferences", Context.MODE_PRIVATE)
 
+    val updatedIsSelectingRange by rememberUpdatedState(isSelectingRange)
+
     Log.d("Recomposition", "WorkCalendar recomposed")
+    Log.d("WorkCalendar", "is Selecting Range? : $updatedIsSelectingRange")
 
     //Retrieve colors from preferences, with default fallback values
     var workDay1Color by remember { mutableStateOf(Color(sharedPreferences.getInt("workDay1Color", Color.Yellow.toArgb()))) }
@@ -109,14 +113,21 @@ fun WorkCalendar(viewModel: WorkViewModel, currentMonth: LocalDate, daysInMonth:
                                         detectTapGestures(
                                             onTap = {
                                                 Log.d("Calendar", "Day tapped: $day")
-                                                onDaySelected(day) },
+                                                onDaySelected(day)
+                                            },
                                             onLongPress = {
                                                 //handle the long press and launch AddActivity
-                                                val intent = Intent(context, AddWorkActivity::class.java)
+                                                val intent =
+                                                    Intent(context, AddWorkActivity::class.java)
                                                 intent.putExtra("selectedDay", day)
-                                                intent.putExtra("selectedMonth", currentMonth.monthValue)
+                                                intent.putExtra(
+                                                    "selectedMonth",
+                                                    currentMonth.monthValue
+                                                )
                                                 intent.putExtra("selectedYear", currentMonth.year)
-                                                (context as MainActivity).addWorkActivityLauncher.launch(intent)
+                                                (context as MainActivity).addWorkActivityLauncher.launch(
+                                                    intent
+                                                )
                                             }
                                         )
 

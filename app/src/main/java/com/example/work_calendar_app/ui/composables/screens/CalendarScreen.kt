@@ -24,9 +24,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -68,14 +70,15 @@ fun CalendarScreen(viewModel: WorkViewModel) {
     var baseTextColor by remember { mutableStateOf(Color(sharedPreferences.getInt("baseTextColor", Color.Black.toArgb()))) }
 
     //Use isSelectingRange from the viewModel
-    val isSelectingRange = viewModel.isSelectingRange
+    val isSelectingRange = viewModel.isSelectingRange.observeAsState(initial = false)
+    val updatedIsSelectingRange by rememberUpdatedState(isSelectingRange)
 
     //Function to toggle selecting range using viewModel
     val onToggleSelectingRange = {
         viewModel.toggleRangeSelection()
         //Reset other states
-        firstSelectedDate = null
-        secondSelectedDate= null
+        viewModel.setFirstSelectedDate(null)
+        viewModel.setSecondSelectedDate(null)
         selectedDay = -1
     }
 
@@ -91,7 +94,7 @@ fun CalendarScreen(viewModel: WorkViewModel) {
 
     //Log to monitor selecting range change
     LaunchedEffect(isSelectingRange) {
-        Log.d("CalendarScreen", "isSelectingRange toggled to: $isSelectingRange")
+        Log.d("CalendarScreen", "isSelectingRange toggled to: $isSelectingRange.value")
     }
 
     //Whenever the screen is recomposed, ensure it checks if the preferences have changed
@@ -114,7 +117,7 @@ fun CalendarScreen(viewModel: WorkViewModel) {
         }
     }
 
-    Log.d("CalendarScreen", "isSelectingRange in CalendarScreen: $isSelectingRange")
+    Log.d("CalendarScreen", "isSelectingRange in CalendarScreen: $updatedIsSelectingRange")
 
     Scaffold(
         topBar = {
@@ -141,12 +144,12 @@ fun CalendarScreen(viewModel: WorkViewModel) {
                             modifier = Modifier.padding(start = 4.dp)
                         ) {
                             Icon(
-                                painter = painterResource(id = if (isSelectingRange) R.drawable.ic_selecting_range_mode else R.drawable.ic_single_day_mode),
+                                painter = painterResource(id = if (updatedIsSelectingRange.value) R.drawable.ic_selecting_range_mode else R.drawable.ic_single_day_mode),
                                 contentDescription = "Toggle mode"
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = if (isSelectingRange) "Select Range" else "Single",
+                                text = if (isSelectingRange.value) "Select Range" else "Single",
                                 fontSize = 12.sp,
                                 color = baseTextColor,
                                 maxLines = 2,
@@ -171,12 +174,9 @@ fun CalendarScreen(viewModel: WorkViewModel) {
             CalendarContent(
                 viewModel,
                 modifier = Modifier.padding(innerPadding),
-                isSelectingRange = isSelectingRange,
+                isSelectingRange = isSelectingRange.value,
                 firstSelectedDate = firstSelectedDate,
                 secondSelectedDate = secondSelectedDate,
-                onSelectingRangeChange = { newIsSelectingRange ->
-                                         viewModel.isSelectingRange = newIsSelectingRange
-                },
                 onFirstSelectedDateChange = { newDate -> firstSelectedDate = newDate },
                 onSecondSelectedDateChange = { newDate -> secondSelectedDate = newDate },
                 onMonthChanged = { newMonth ->
