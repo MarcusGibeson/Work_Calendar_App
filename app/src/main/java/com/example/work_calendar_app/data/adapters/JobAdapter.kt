@@ -24,5 +24,4 @@ class JobAdapter(context: Context, private val jobs: List<Job>) : ArrayAdapter<J
     override fun toString(): String {
         return jobs.joinToString(", ") { it.name }
     }
-} {
 }
