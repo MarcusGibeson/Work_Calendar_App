@@ -35,11 +35,19 @@ class WorkScheduleDatabaseHelper(context: Context) : SQLiteOpenHelper(context, D
         private const val COLUMN_SALARY_AMOUNT = "salary_amount"
         private const val COLUMN_DAILY_SALARY = "daily_salary"
         private const val COLUMN_TOTAL_EARNINGS = "total_earnings"
+        private const val JOBS_TABLE_NAME = "jobs"
+        private const val COLUMN_JOB_ID = "job_id"
+        private const val COLUMN_JOB_NAME = "job_name"
     }
 
 
 
     override fun onCreate(db: SQLiteDatabase?) {
+        val createJobsTableQuery = ("CREATE TABLE $JOBS_TABLE_NAME (" +
+                "$COLUMN_JOB_ID INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                "$COLUMN_JOB_NAME TEXT )")
+        db?.execSQL(createJobsTableQuery)
+
         val createTableQuery = ("CREATE TABLE $TABLE_NAME (" +
                 "$COLUMN_ID INTEGER PRIMARY KEY AUTOINCREMENT, " +
                 "$COLUMN_DATE TEXT, " +
@@ -55,7 +63,8 @@ class WorkScheduleDatabaseHelper(context: Context) : SQLiteOpenHelper(context, D
                 "$COLUMN_SALARY_AMOUNT REAL, " +
                 "$COLUMN_DAILY_SALARY REAL, " +
                 "$COLUMN_TIPS REAL, " +
-                "$COLUMN_TOTAL_EARNINGS REAL )")
+                "$COLUMN_TOTAL_EARNINGS REAL, " +
+                "FOREIGN KEY($COLUMN_JOB_ID) REFERENCES $JOBS_TABLE_NAME($COLUMN_JOB_ID) ON DELETE CASCADE )")
         db?.execSQL(createTableQuery)
 
         val createSecondTableQuery = ("CREATE TABLE $SECOND_TABLE_NAME (" +
@@ -71,7 +80,8 @@ class WorkScheduleDatabaseHelper(context: Context) : SQLiteOpenHelper(context, D
                 "$COLUMN_COMMISSION_DETAILS TEXT, " +
                 "$COLUMN_TOTAL_COMMISSION_SALES INT, " +
                 "$COLUMN_SALARY_AMOUNT REAL, " +
-                "$COLUMN_TOTAL_EARNINGS REAL )")
+                "$COLUMN_TOTAL_EARNINGS REAL, " +
+                "FOREIGN KEY($COLUMN_JOB_ID) REFERENCES $JOBS_TABLE_NAME($COLUMN_JOB_ID) ON DELETE CASCADE )")
         db?.execSQL(createSecondTableQuery)
     }
 
@@ -85,7 +95,7 @@ class WorkScheduleDatabaseHelper(context: Context) : SQLiteOpenHelper(context, D
         return regex.matches(date)
     }
 
-    fun insertWorkSchedule(id: Long?, date: String, startTime: String, endTime: String, breakMinutes: Int, payType: String, payRate: Double, overtimeRate: Double, commissionRate: Int, commissionDetails: List<Double>, salaryAmount: Double, tips: Double): Boolean {
+    fun insertWorkSchedule(id: Long?, jobId: Long, date: String, startTime: String, endTime: String, breakMinutes: Int, payType: String, payRate: Double, overtimeRate: Double, commissionRate: Int, commissionDetails: List<Double>, salaryAmount: Double, tips: Double): Boolean {
         val db = this.writableDatabase
         val sdf = SimpleDateFormat("yyyy/MM/dd", Locale.getDefault())
         var formattedDate: String? = null
@@ -108,6 +118,7 @@ class WorkScheduleDatabaseHelper(context: Context) : SQLiteOpenHelper(context, D
         }else {
             Log.d("Database-insertWorkSchedule", "Date (Original): $date")
         }
+        Log.d("Databse-insertWorkSchedule", "Job ID: $jobId")
         Log.d("Database-insertWorkSchedule", "Start Time: $startTime")
         Log.d("Database-insertWorkSchedule", "End Time: $endTime")
         Log.d("Database-insertWorkSchedule", "Break Minutes: $breakMinutes")
@@ -157,6 +168,7 @@ class WorkScheduleDatabaseHelper(context: Context) : SQLiteOpenHelper(context, D
             put(COLUMN_COMMISSION_DETAILS, commissionDetailsCSV)
             put(COLUMN_TIPS, tips)
             put(COLUMN_TOTAL_EARNINGS, totalEarnings)
+            put(COLUMN_JOB_ID, jobId)
         }
         return try {
             if (id != null) {
@@ -190,7 +202,7 @@ class WorkScheduleDatabaseHelper(context: Context) : SQLiteOpenHelper(context, D
         }
     }
 
-    fun insertSavedSchedule(name: String, startTime: String, endTime: String, breakTime: Int, payType: String, hourlyRate: Double, overtimeRate: Double, commissionRate: Int, salaryAmount: Double) {
+    fun insertSavedSchedule(jobId: Long, name: String, startTime: String, endTime: String, breakTime: Int, payType: String, hourlyRate: Double, overtimeRate: Double, commissionRate: Int, salaryAmount: Double) {
         val db = writableDatabase
 
         val values = ContentValues().apply {
@@ -203,10 +215,33 @@ class WorkScheduleDatabaseHelper(context: Context) : SQLiteOpenHelper(context, D
             put(COLUMN_OVERTIME_RATE, overtimeRate)
             put(COLUMN_COMMISSION_RATE, commissionRate)
             put(COLUMN_SALARY_AMOUNT, salaryAmount)
+            put(COLUMN_JOB_ID, jobId)
         }
         db.insert("saved_schedules", null, values)
         Log.d("Database-insertSavedSchedule", "Schedule save: $name")
     }
+
+    fun fetchJobsFromDatabase(): List<Job> {
+        val db = this.readableDatabase
+        val cursor = db.query(
+            JOBS_TABLE_NAME,
+            arrayOf(COLUMN_JOB_ID, COLUMN_JOB_NAME),
+            null, null, null, null, null
+        )
+
+        val jobs = mutableListOf<Job>()
+        if(cursor.moveToFirst()) {
+            do {
+                val jobId = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_JOB_ID))
+                val jobName = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_JOB_NAME))
+                jobs.add(Job(jobId, jobName))
+                Log.d("Database-fetchJobs", "Job fetched: $jobName : $jobId")
+            } while (cursor.moveToNext())
+        }
+        cursor.close()
+        return jobs
+    }
+
 
     fun deleteWorkEntry(id: Long): Boolean {
         val db = this.writableDatabase
