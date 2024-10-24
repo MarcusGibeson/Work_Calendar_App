@@ -25,6 +25,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.work_calendar_app.data.adapters.CommissionDetailsAdapter
+import com.example.work_calendar_app.data.models.Job
 
 class AddWorkActivity : AppCompatActivity() {
 
@@ -62,6 +63,8 @@ class AddWorkActivity : AppCompatActivity() {
     private lateinit var btnSave: Button
     private lateinit var btnSaveSchedule: Button
     private lateinit var btnFinish: Button
+    private lateinit var jobSpinner: Spinner
+    private lateinit var jobList: List<Job>
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -109,6 +112,8 @@ class AddWorkActivity : AppCompatActivity() {
         btnSave = findViewById(R.id.btnSave)
         btnSaveSchedule = findViewById(R.id.saveScheduleButton)
         btnFinish = findViewById(R.id.btnFinish)
+        jobList = dbHelper.fetchJobsFromDatabase()
+        jobSpinner = findViewById(R.id.jobSpinner)
         Log.d("AddWorkActivity", "Views initialized")
 
        updateUIState()
@@ -150,6 +155,22 @@ class AddWorkActivity : AppCompatActivity() {
                 //Do nothing if no item is selected
             }
         }
+
+        loadJobsIntoSpinner()
+
+        //Set OnItemSelectedListener for jobSpinner
+        jobSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener{
+            override fun onItemSelected(parent: AdapterView<*>, view: View?, position: Int, id: Long) {
+                val selectedJob = jobSpinner.selectedItem as Job
+                val selectedJobId = selectedJob.id
+                Log.d("JobSelection", "Selected Job ID: $selectedJobId")
+            }
+
+            override fun onNothingSelected(parent:AdapterView<*>?) {
+                //Do nothing if no item is selected
+            }
+        }
+
 
         //Date picker for work date
         workDate.setOnClickListener {
@@ -320,6 +341,14 @@ class AddWorkActivity : AppCompatActivity() {
         val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, scheduleNames)
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         savedScheduleSpinner.adapter = adapter
+    }
+
+    private fun loadJobsIntoSpinner() {
+        val jobs = dbHelper.fetchJobsFromDatabase()
+        val jobAdapter = JobAdapter(this, jobs)
+
+        jobSpinner.adapter = jobAdapter
+
     }
 
     private fun loadScheduleDetails(scheduleName: String) {
