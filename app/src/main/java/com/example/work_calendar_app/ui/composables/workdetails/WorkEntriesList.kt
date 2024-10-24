@@ -151,6 +151,7 @@ fun WorkEntriesList(viewModel: WorkViewModel, workEntries: Map<Long, WorkEntry>,
             Log.d("WorkDetailsList", "Verifying date: ID: $id, Date: $formattedWorkDate")
             WorkEntry(
                 id = workEntry.id,
+                jobId = workEntry.jobId,
                 workDate = formattedWorkDate,
                 startTime = workEntry.startTime,
                 endTime = workEntry.endTime,
