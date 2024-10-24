@@ -25,6 +25,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.work_calendar_app.data.adapters.CommissionDetailsAdapter
+import com.example.work_calendar_app.data.adapters.JobAdapter
 import com.example.work_calendar_app.data.models.Job
 
 class AddWorkActivity : AppCompatActivity() {
@@ -252,6 +253,8 @@ class AddWorkActivity : AppCompatActivity() {
 
         //Handle adding work schedule
         btnSave.setOnClickListener {
+            val selectedJob = jobSpinner.selectedItem as Job
+            val selectedJobId = selectedJob.id
             val workDate = workDate.text.toString()
             val startTime = startTime.text.toString()
             val endTime = endTime.text.toString()
@@ -270,7 +273,7 @@ class AddWorkActivity : AppCompatActivity() {
             Log.d("AddWorkActivity", "Saving Work Schedule: Date: $workDate, Start time: $startTime, End time: $endTime, Break Time: $breakTime, Pay Type: $payType, Hourly Rate: $payRate, Overtime Pay: $overtimePay, Commission Rate: $commissionRate, Commission Details: $commissionDetails, Salary Amount: $salaryAmount, Tips: $tips")
             //Insert into database
             val dbHelper = WorkScheduleDatabaseHelper(this)
-            dbHelper.insertWorkSchedule(null, jobId, workDate, startTime, endTime, breakTime, payType, payRate, overtimePay, commissionRate, commissionDetails, salaryAmount, tips)
+            dbHelper.insertWorkSchedule(null, selectedJobId, workDate, startTime, endTime, breakTime, payType, payRate, overtimePay, commissionRate, commissionDetails, salaryAmount, tips)
 
             Toast.makeText(this, "Work schedule added successfully!", Toast.LENGTH_SHORT).show()
             val resultIntent = Intent()
@@ -281,6 +284,8 @@ class AddWorkActivity : AppCompatActivity() {
 
         //Save Schedule into database for later use
         btnSaveSchedule.setOnClickListener {
+            val selectedJob = jobSpinner.selectedItem as Job
+            val selectedJobId = selectedJob.id
             val startTime = startTime.text.toString()
             val endTime = endTime.text.toString()
             val breakTime = breakTime.text.toString().toIntOrNull() ?: 0
@@ -294,7 +299,7 @@ class AddWorkActivity : AppCompatActivity() {
             val scheduleName = "$startTime - $endTime"
 
             //Insert into saved schedules database
-            dbHelper.insertSavedSchedule(scheduleName, startTime, endTime, breakTime, payType, hourlyRate, overtimePay, commissionRate, salaryAmount)
+            dbHelper.insertSavedSchedule(selectedJobId, scheduleName, startTime, endTime, breakTime, payType, hourlyRate, overtimePay, commissionRate, salaryAmount)
             updateUIState()
             Toast.makeText(this, "Schedule saved as $scheduleName", Toast.LENGTH_SHORT).show()
         }
