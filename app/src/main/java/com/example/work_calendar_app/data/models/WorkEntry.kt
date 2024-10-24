@@ -2,6 +2,7 @@ package com.example.work_calendar_app.data.models
 
 data class WorkEntry(
     val id: Long,
+    val jobId: Long,
     val workDate: String,
     val startTime: String,
     val endTime: String,

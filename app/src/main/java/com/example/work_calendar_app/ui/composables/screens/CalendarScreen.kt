@@ -53,6 +53,8 @@ fun CalendarScreen(viewModel: WorkViewModel) {
 
     Log.d("Recomposition", "CalendarScreen recomposed")
 
+    var jobName by remember { mutableStateOf("") }
+
     var workEntries by remember { mutableStateOf(mutableMapOf<Long, WorkEntry>()) }
     var entryEdited by remember { mutableStateOf(false) }
     var workEntriesChanged by remember { mutableIntStateOf(0) }
@@ -90,6 +92,17 @@ fun CalendarScreen(viewModel: WorkViewModel) {
     fun onAddOrUpdateOrDeleteEntry() {
         refreshWorkEntries()
         entryEdited = true
+    }
+
+
+    val jobColorMap = mutableMapOf<Long, Color>()
+
+    //Load colors from shared preferences
+    LaunchedEffect(Unit) {
+        jobColorMap[1] = workDay1Color
+        jobColorMap[2] = workDay2Color
+        jobColorMap[3] = workDay3Color
+        jobColorMap[4] = workDay4Color
     }
 
     //Log to monitor selecting range change

@@ -6,6 +6,7 @@ import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import android.util.Log
+import com.example.work_calendar_app.data.models.Job
 import java.text.SimpleDateFormat
 import java.time.Duration
 import java.time.LocalTime
