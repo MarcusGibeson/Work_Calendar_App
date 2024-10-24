@@ -43,6 +43,7 @@ import com.example.work_calendar_app.R
 import com.example.work_calendar_app.UserSettingsActivity
 import com.example.work_calendar_app.data.models.WorkEntry
 import com.example.work_calendar_app.ui.composables.calendar.CalendarContent
+import com.example.work_calendar_app.ui.composables.components.JobManagementDialog
 import com.example.work_calendar_app.viewmodels.WorkViewModel
 import java.time.LocalDate
 
