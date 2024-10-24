@@ -96,7 +96,7 @@ fun CalendarContent(
         val workEntriesChanged by remember { mutableIntStateOf(0) }
 
         //Store fetched work details for the selected day
-        var workEntryForPopup by remember { mutableStateOf(WorkEntry(0,"","","",0, "",0.0, 0.0,0,listOf(0.0), 0.0, 0.0, 0.0, 0.0, 0.0)) }
+        var workEntryForPopup by remember { mutableStateOf(WorkEntry(0, 0,"","","",0, "",0.0, 0.0,0,listOf(0.0), 0.0, 0.0, 0.0, 0.0, 0.0)) }
 
         //Fetch context and database-related work entries
         val context = LocalContext.current
@@ -163,7 +163,7 @@ fun CalendarContent(
         //Fetch the data for the selected day
         LaunchedEffect(selectedDay, entryEdited) {
             if (selectedDay != -1 && !isSelectingRange) {
-                workEntryForPopup = WorkEntry(0,"","","",0, "",0.0, 0.0,0,listOf(0.0), 0.0, 0.0, 0.0, 0.0, 0.0)
+                workEntryForPopup = WorkEntry(0, 0,"","","",0, "",0.0, 0.0,0,listOf(0.0), 0.0, 0.0, 0.0, 0.0, 0.0)
 
                 val formattedDate = String.format("%04d-%02d-%02d", currentMonth.year, currentMonth.monthValue, selectedDay)
                 Log.d("MainActivity","formatted date: $formattedDate")

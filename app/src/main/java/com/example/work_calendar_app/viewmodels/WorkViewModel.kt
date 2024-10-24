@@ -249,9 +249,9 @@ class WorkViewModel (private val workRepository: WorkRepository) : ViewModel() {
     }
 
     //Function to insert a new job
-    fun insertJob(job: Job) {
+    fun insertJob(jobName: String) {
         viewModelScope.launch(Dispatchers.IO) {
-            workRepository.insertJob(job)
+            workRepository.insertJob(jobName)
             loadAllJobs()
         }
     }

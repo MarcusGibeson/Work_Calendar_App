@@ -249,7 +249,7 @@ class AddWorkActivity : AppCompatActivity() {
             Log.d("AddWorkActivity", "Saving Work Schedule: Date: $workDate, Start time: $startTime, End time: $endTime, Break Time: $breakTime, Pay Type: $payType, Hourly Rate: $payRate, Overtime Pay: $overtimePay, Commission Rate: $commissionRate, Commission Details: $commissionDetails, Salary Amount: $salaryAmount, Tips: $tips")
             //Insert into database
             val dbHelper = WorkScheduleDatabaseHelper(this)
-            dbHelper.insertWorkSchedule(null, workDate, startTime, endTime, breakTime, payType, payRate, overtimePay, commissionRate, commissionDetails, salaryAmount, tips)
+            dbHelper.insertWorkSchedule(null, jobId, workDate, startTime, endTime, breakTime, payType, payRate, overtimePay, commissionRate, commissionDetails, salaryAmount, tips)
 
             Toast.makeText(this, "Work schedule added successfully!", Toast.LENGTH_SHORT).show()
             val resultIntent = Intent()

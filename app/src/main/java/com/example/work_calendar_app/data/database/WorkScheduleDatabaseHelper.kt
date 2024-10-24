@@ -250,10 +250,9 @@ class WorkScheduleDatabaseHelper(context: Context) : SQLiteOpenHelper(context, D
     }
 
     //Method to insert new job into database
-    fun insertJob(jobId: Long, name: String) {
+    fun insertJob(name: String) {
         val db = writableDatabase
         val values = ContentValues().apply {
-            put("job_id", jobId)
             put("job_name", name)
         }
         db.insert("jobs", null, values)

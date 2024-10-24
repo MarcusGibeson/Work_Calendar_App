@@ -109,10 +109,9 @@ class WorkRepository (private val dbHelper: WorkScheduleDatabaseHelper) {
     }
 
     //Insert a new job in the database
-    suspend fun insertJob(job: Job) = withContext(Dispatchers.IO) {
+    suspend fun insertJob(jobName: String) = withContext(Dispatchers.IO) {
         dbHelper.insertJob(
-            jobId = job.id,
-            name = job.name
+            name = jobName
         )
     }
 

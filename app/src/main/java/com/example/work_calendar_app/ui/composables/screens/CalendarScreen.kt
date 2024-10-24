@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -206,6 +207,11 @@ fun CalendarScreen(viewModel: WorkViewModel) {
                     }
                 },
                 actions = {
+                    IconButton(onClick = {
+                        showJobDialog = true
+                    }) {
+                        Icon(Icons.Default.Add, contentDescription = "Manage Jobs")
+                    }
                     IconButton(onClick = { onSettingsClicked(context) }) {
                         Icon(Icons.Default.Settings, contentDescription = "Settings")
                     }
