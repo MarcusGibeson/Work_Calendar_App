@@ -12,6 +12,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.work_calendar_app.data.models.Job
 import com.example.work_calendar_app.data.models.WorkEntry
 import com.example.work_calendar_app.data.repositories.WorkRepository
 import kotlinx.coroutines.Dispatchers
@@ -24,6 +25,10 @@ import java.time.LocalDate
 
 
 class WorkViewModel (private val workRepository: WorkRepository) : ViewModel() {
+
+    //LiveData for the list of jobs
+    private val _jobs = MutableLiveData<List<Job>>()
+    val jobs: LiveData<List<Job>> get() = _jobs
 
     //State to toggle selecting range
     private val _isSelectingRange = MutableLiveData(false)
@@ -233,5 +238,29 @@ class WorkViewModel (private val workRepository: WorkRepository) : ViewModel() {
         _isSelectingRange.value = !(_isSelectingRange.value ?: false)
     }
 
+    //Function to load all jobs from the repository
+    fun loadAllJobs() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val jobList = workRepository.getAllJobs()
+            withContext(Dispatchers.Main) {
+                _jobs.value = jobList
+            }
+        }
+    }
 
+    //Function to insert a new job
+    fun insertJob(job: Job) {
+        viewModelScope.launch(Dispatchers.IO) {
+            workRepository.insertJob(job)
+            loadAllJobs()
+        }
+    }
+
+    //Function to delete a job by its Id
+    fun deleteJob(jobId: Long) {
+        viewModelScope.launch(Dispatchers.IO) {
+            workRepository.deleteJob(jobId)
+            loadAllJobs()
+        }
+    }
 }

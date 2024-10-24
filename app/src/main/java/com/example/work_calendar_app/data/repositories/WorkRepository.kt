@@ -3,6 +3,7 @@ package com.example.work_calendar_app.data.repositories
 import android.util.Log
 import com.example.work_calendar_app.data.models.WorkEntry
 import com.example.work_calendar_app.data.database.WorkScheduleDatabaseHelper
+import com.example.work_calendar_app.data.models.Job
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
@@ -32,7 +33,7 @@ class WorkRepository (private val dbHelper: WorkScheduleDatabaseHelper) {
             Log.e("WorkRepository", "Cursor is null. Database query failed for date: $date")
         }
 
-        var workEntry = WorkEntry(0, "","","",0,"",0.0,0.0,0,listOf(0.0),0.0,0.0,0.0,0.0,0.0)
+        var workEntry = WorkEntry(0, 0,"","","",0,"",0.0,0.0,0,listOf(0.0),0.0,0.0,0.0,0.0,0.0)
 
         if (cursor != null && cursor.moveToFirst()) {
             try {
@@ -49,6 +50,7 @@ class WorkRepository (private val dbHelper: WorkScheduleDatabaseHelper) {
     suspend fun addOrUpdateWorkEntry(workEntry: WorkEntry) = withContext(Dispatchers.IO) {
         dbHelper.insertWorkSchedule(
             id = workEntry.id,
+            jobId = workEntry.jobId,
             date = workEntry.workDate,
             startTime = workEntry.startTime,
             endTime = workEntry.endTime,
@@ -90,10 +92,57 @@ class WorkRepository (private val dbHelper: WorkScheduleDatabaseHelper) {
         return@withContext workEntries
     }
 
+    //Fetch all jobs from the database
+    suspend fun getAllJobs(): List<Job> = withContext(Dispatchers.IO) {
+        val jobs = mutableListOf<Job>()
+        val cursor = dbHelper.getAllJobs()
+
+        if (cursor != null && cursor.moveToFirst()) {
+            do {
+                val job = cursorToJob(cursor)
+                if (job != null) {
+                    jobs.add(job)
+                }
+            } while (cursor.moveToNext())
+        }
+        return@withContext jobs
+    }
+
+    //Insert a new job in the database
+    suspend fun insertJob(job: Job) = withContext(Dispatchers.IO) {
+        dbHelper.insertJob(
+            jobId = job.id,
+            name = job.name
+        )
+    }
+
+    //Delete job by id
+    suspend fun deleteJob(jobId: Long) = withContext(Dispatchers.IO) {
+        dbHelper.deleteJob(jobId)
+    }
+
+    //Helper function to convert a cursor into Job object
+    private fun cursorToJob(cursor: android.database.Cursor): Job? {
+        return try {
+            val id = cursor.getLong(cursor.getColumnIndexOrThrow("job_id"))
+            val name = cursor.getString(cursor.getColumnIndexOrThrow("job_name"))
+
+            Job(
+                id = id,
+                name = name
+            )
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+
     //Helper function to convert a cursor into a WorkEntry object
     private fun cursorToWorkEntry(cursor: android.database.Cursor): WorkEntry? {
         return try {
             val id = cursor.getLong(cursor.getColumnIndexOrThrow("id"))
+            val jobId = cursor.getLong(cursor.getColumnIndexOrThrow("job_id"))
             val workDate = cursor.getString(cursor.getColumnIndexOrThrow("work_date"))
             val startTime = cursor.getString(cursor.getColumnIndexOrThrow("start_time"))
             val endTime = cursor.getString(cursor.getColumnIndexOrThrow("end_time"))
@@ -113,6 +162,7 @@ class WorkRepository (private val dbHelper: WorkScheduleDatabaseHelper) {
 
             WorkEntry(
                 id = id,
+                jobId = jobId,
                 workDate = workDate,
                 startTime = startTime,
                 endTime = endTime,
@@ -147,4 +197,6 @@ class WorkRepository (private val dbHelper: WorkScheduleDatabaseHelper) {
         val regex = Regex("^\\d{4}-\\d{2}-\\d{2}$")
         return regex.matches(date)
     }
+
+
 }

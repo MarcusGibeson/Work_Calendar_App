@@ -5,10 +5,16 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.util.Log
+import android.widget.Toast
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
@@ -54,7 +60,8 @@ fun CalendarScreen(viewModel: WorkViewModel) {
 
     Log.d("Recomposition", "CalendarScreen recomposed")
 
-    var jobName by remember { mutableStateOf("") }
+    val jobs by viewModel.jobs.observeAsState(emptyList())
+    var showJobDialog by remember { mutableStateOf(false) }
 
     var workEntries by remember { mutableStateOf(mutableMapOf<Long, WorkEntry>()) }
     var entryEdited by remember { mutableStateOf(false) }
@@ -62,6 +69,7 @@ fun CalendarScreen(viewModel: WorkViewModel) {
     var selectedDay by remember { mutableIntStateOf(-1) }
     var firstSelectedDate: String? by remember { mutableStateOf(null) }
     var secondSelectedDate: String? by remember { mutableStateOf(null) }
+
 
     var currentMonth by remember { mutableStateOf(LocalDate.now()) }
     val context = LocalContext.current
@@ -114,8 +122,7 @@ fun CalendarScreen(viewModel: WorkViewModel) {
 
     //Fetch jobs when the screen is composed
     LaunchedEffect(Unit) {
-        val jobList = dbHelper.fetchJobsFromDatabase()
-        jobs.value = jobList
+        viewModel.loadAllJobs()
     }
 
     //Log to monitor selecting range change
@@ -208,26 +215,67 @@ fun CalendarScreen(viewModel: WorkViewModel) {
                 )
             )
         },
-        content = {innerPadding ->
+        content = { innerPadding ->
+            Column(modifier = Modifier.padding(innerPadding)) {
+                //Job bar under top bar
+                if (jobs.isNotEmpty()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(36.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        val displayedJobs = jobs.take(4)
 
-            CalendarContent(
-                viewModel,
-                modifier = Modifier.padding(innerPadding),
-                isSelectingRange = isSelectingRange.value,
-                firstSelectedDate = firstSelectedDate,
-                secondSelectedDate = secondSelectedDate,
-                onFirstSelectedDateChange = { newDate -> firstSelectedDate = newDate },
-                onSecondSelectedDateChange = { newDate -> secondSelectedDate = newDate },
-                onMonthChanged = { newMonth ->
-                    currentMonth = currentMonth.withMonth(newMonth.value)
-                    viewModel.fetchWorkEntriesForMonth(currentMonth.month.value, currentMonth.year)
-                },
-                entryEdited = entryEdited,
-                onEntryEditedChange = { isEdited -> entryEdited = isEdited }
-            ) { refreshWorkEntries() }
+                        //Create segments for each job
+                        displayedJobs.forEach { job ->
+                            val jobBackgroundColor = jobColorMap[job.id] ?: Color.Gray
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight()
+                                    .background(jobBackgroundColor),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(text = job.name, color = baseTextColor)
+                            }
+                        }
 
+                        //If there are fewer than 4 jobs, fill the remaining space with empty boxes
+                        repeat(4 - displayedJobs.size) {
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight()
+                                    .background(Color.LightGray),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                //Empty Space
+                            }
+                        }
+                    }
+                }
+                CalendarContent(
+                    viewModel,
+                    modifier = Modifier.padding(innerPadding),
+                    isSelectingRange = isSelectingRange.value,
+                    firstSelectedDate = firstSelectedDate,
+                    secondSelectedDate = secondSelectedDate,
+                    onFirstSelectedDateChange = { newDate -> firstSelectedDate = newDate },
+                    onSecondSelectedDateChange = { newDate -> secondSelectedDate = newDate },
+                    onMonthChanged = { newMonth ->
+                        currentMonth = currentMonth.withMonth(newMonth.value)
+                        viewModel.fetchWorkEntriesForMonth(
+                            currentMonth.month.value,
+                            currentMonth.year
+                        )
+                    },
+                    entryEdited = entryEdited,
+                    onEntryEditedChange = { isEdited -> entryEdited = isEdited }
+                ) { refreshWorkEntries() }
+
+            }
         }
-
 
     )
 
@@ -237,7 +285,7 @@ fun CalendarScreen(viewModel: WorkViewModel) {
             onDismiss = { showJobDialog = false },
             onJobAdded = { jobName ->
                 //Insert the new job into the database
-                dbHelper.insertJob(jobName)
+                viewModel.insertJob(jobName)
                 Toast.makeText(context, "Job '$jobName' added successfully!", Toast.LENGTH_SHORT).show()
 
             }

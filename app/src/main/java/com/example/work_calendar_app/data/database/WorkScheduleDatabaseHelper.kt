@@ -243,6 +243,30 @@ class WorkScheduleDatabaseHelper(context: Context) : SQLiteOpenHelper(context, D
         return jobs
     }
 
+    // Method to get all jobs from the database
+    fun getAllJobs(): Cursor {
+        val db = readableDatabase
+        return db.query("jobs", null, null, null, null, null, null)
+    }
+
+    //Method to insert new job into database
+    fun insertJob(jobId: Long, name: String) {
+        val db = writableDatabase
+        val values = ContentValues().apply {
+            put("job_id", jobId)
+            put("job_name", name)
+        }
+        db.insert("jobs", null, values)
+    }
+
+    //Method to delete a job by id
+    fun deleteJob(jobId: Long) {
+        val db = writableDatabase
+        db.delete("jobs", "job_id = ?", arrayOf(jobId.toString()))
+    }
+
+
+
 
     fun deleteWorkEntry(id: Long): Boolean {
         val db = this.writableDatabase
