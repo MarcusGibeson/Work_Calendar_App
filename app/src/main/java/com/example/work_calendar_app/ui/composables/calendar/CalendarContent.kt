@@ -237,7 +237,7 @@ fun CalendarContent(
                     .fillMaxSize()
                     .padding(8.dp, bottom = 0.dp)
             ) {
-                Spacer(modifier = Modifier.height(30.dp)) //spacer between TopBar and prev/next buttons
+                Spacer(modifier = Modifier.height(12.dp)) //spacer between TopBar and prev/next buttons
 
                 //Row for previous and next buttons with Month title in between
                 Row(
