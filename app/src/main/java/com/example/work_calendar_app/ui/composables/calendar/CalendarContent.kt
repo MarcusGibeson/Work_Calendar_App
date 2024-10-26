@@ -57,6 +57,7 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun CalendarContent(
     viewModel: WorkViewModel,
+    jobColorMap: Map<Long, Color>,
     modifier: Modifier,
     isSelectingRange: Boolean,
     firstSelectedDate: String?,
@@ -237,7 +238,7 @@ fun CalendarContent(
                     .fillMaxSize()
                     .padding(8.dp, bottom = 0.dp)
             ) {
-                Spacer(modifier = Modifier.height(12.dp)) //spacer between TopBar and prev/next buttons
+                Spacer(modifier = Modifier.height(6.dp)) //spacer between TopBar and prev/next buttons
 
                 //Row for previous and next buttons with Month title in between
                 Row(
@@ -349,6 +350,7 @@ fun CalendarContent(
                 //Custom Work Calendar
                 WorkCalendar(
                     viewModel,
+                    jobColorMap = jobColorMap,
                     currentMonth,
                     daysInMonth = daysInMonth,
                     workDays = workDays.toList(),

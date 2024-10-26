@@ -28,7 +28,15 @@ import com.example.work_calendar_app.viewmodels.WorkViewModel
 import java.time.LocalDate
 
 @Composable
-fun WorkCalendar(viewModel: WorkViewModel, currentMonth: LocalDate, daysInMonth: Int, workDays: List<Int>, isSelectingRange: Boolean, onDaySelected: (Int) -> Unit) {
+fun WorkCalendar(
+    viewModel: WorkViewModel,
+    jobColorMap: Map<Long, Color>,
+    currentMonth: LocalDate,
+    daysInMonth: Int,
+    workDays: List<Int>,
+    isSelectingRange: Boolean,
+    onDaySelected: (Int) -> Unit
+) {
 
     val context = LocalContext.current
     val sharedPreferences = context.getSharedPreferences("user_preferences", Context.MODE_PRIVATE)
@@ -95,9 +103,11 @@ fun WorkCalendar(viewModel: WorkViewModel, currentMonth: LocalDate, daysInMonth:
                         val day = (week * 7 + dayOfWeek) - firstDayOfMonth + 1
 
                         if (day in 1..daysInMonth) {
+                            val jobId = viewModel.getJobIdForDay(day)
+
                             val currentDayColor =  if (day == currentDay) Color(outlineColor.toArgb()) else Color.Transparent
                             val borderColor = Color.Black
-                            val backgroundColor = if (day in workDays) Color(workDay1Color.toArgb()) else Color.LightGray
+                            val backgroundColor = jobColorMap[jobId] ?: Color.LightGray
                             Box(
                                 modifier = Modifier
                                     .size(48.dp)

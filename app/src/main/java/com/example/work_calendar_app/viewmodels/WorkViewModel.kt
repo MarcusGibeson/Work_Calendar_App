@@ -263,4 +263,13 @@ class WorkViewModel (private val workRepository: WorkRepository) : ViewModel() {
             loadAllJobs()
         }
     }
+
+    fun getJobIdForDay(day: Int): Long {
+        //Find a work entry where the workDate matches the specified day with the current month
+        val matchingEntry = _workEntries.value.values.find { entry ->
+            val workDate = LocalDate.parse(entry.workDate)
+            workDate.dayOfMonth == day && workDate.monthValue == currentMonth && workDate.year == currentYear
+        }
+        return matchingEntry?.jobId ?: -1
+    }
 }

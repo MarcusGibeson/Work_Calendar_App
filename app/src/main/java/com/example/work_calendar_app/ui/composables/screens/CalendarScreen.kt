@@ -63,6 +63,7 @@ fun CalendarScreen(viewModel: WorkViewModel) {
 
     val jobs by viewModel.jobs.observeAsState(emptyList())
     var showJobDialog by remember { mutableStateOf(false) }
+    val isJobLimitReached = jobs.size >= 4
 
     var workEntries by remember { mutableStateOf(mutableMapOf<Long, WorkEntry>()) }
     var entryEdited by remember { mutableStateOf(false) }
@@ -112,13 +113,20 @@ fun CalendarScreen(viewModel: WorkViewModel) {
 
 
     val jobColorMap = mutableMapOf<Long, Color>()
+    val jobColors = remember { mutableStateOf(jobColorMap) }
 
     //Load colors from shared preferences
-    LaunchedEffect(Unit) {
-        jobColorMap[1] = workDay1Color
-        jobColorMap[2] = workDay2Color
-        jobColorMap[3] = workDay3Color
-        jobColorMap[4] = workDay4Color
+    LaunchedEffect(jobs) {
+        jobColorMap.clear()
+        val colorList = listOf(workDay1Color, workDay2Color, workDay3Color, workDay4Color)
+
+        jobs.forEachIndexed { index, job ->
+            if (index < colorList.size) {
+                jobColorMap[job.id] = colorList[index]
+            }
+        }
+        jobColors.value = jobColorMap.toMutableMap()
+        Log.d("CalendarScreen", "Job colors updated: $jobColorMap")
     }
 
     //Fetch jobs when the screen is composed
@@ -208,9 +216,15 @@ fun CalendarScreen(viewModel: WorkViewModel) {
                 },
                 actions = {
                     IconButton(onClick = {
-                        showJobDialog = true
-                    }) {
-                        Icon(Icons.Default.Add, contentDescription = "Manage Jobs")
+                        if (!isJobLimitReached) showJobDialog = true
+                    },
+                        enabled = !isJobLimitReached
+                    ) {
+                        Icon(
+                            Icons.Default.Add,
+                            contentDescription = "Manage Jobs",
+                            tint = if (isJobLimitReached) Color.Red else Color.White
+                        )
                     }
                     IconButton(onClick = { onSettingsClicked(context) }) {
                         Icon(Icons.Default.Settings, contentDescription = "Settings")
@@ -228,17 +242,18 @@ fun CalendarScreen(viewModel: WorkViewModel) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(36.dp),
+                            .height(30.dp),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
                         val displayedJobs = jobs.take(4)
+                        val jobWeight = 1f / displayedJobs.size
 
                         //Create segments for each job
                         displayedJobs.forEach { job ->
-                            val jobBackgroundColor = jobColorMap[job.id] ?: Color.Gray
+                            val jobBackgroundColor = jobColors.value[job.id] ?: Color.Gray
                             Box(
                                 modifier = Modifier
-                                    .weight(1f)
+                                    .weight(jobWeight)
                                     .fillMaxHeight()
                                     .background(jobBackgroundColor),
                                 contentAlignment = Alignment.Center
@@ -246,23 +261,11 @@ fun CalendarScreen(viewModel: WorkViewModel) {
                                 Text(text = job.name, color = baseTextColor)
                             }
                         }
-
-                        //If there are fewer than 4 jobs, fill the remaining space with empty boxes
-                        repeat(4 - displayedJobs.size) {
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .fillMaxHeight()
-                                    .background(Color.LightGray),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                //Empty Space
-                            }
-                        }
                     }
                 }
                 CalendarContent(
                     viewModel,
+                    jobColorMap = jobColorMap,
                     modifier = Modifier.padding(innerPadding),
                     isSelectingRange = isSelectingRange.value,
                     firstSelectedDate = firstSelectedDate,

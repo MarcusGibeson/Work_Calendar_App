@@ -273,9 +273,14 @@ class UserSettingsActivity : AppCompatActivity() {
 
         database.beginTransaction()
         try{
-            database.execSQL("DELETE FROM jobs")
             database.execSQL("DELETE FROM work_schedule")
             database.execSQL("DELETE FROM saved_schedules")
+            database.execSQL("DELETE FROM jobs")
+
+            //Reset Autoincrement counters
+            database.execSQL("DELETE FROM sqlite_sequence WHERE name = 'work_schedule'")
+            database.execSQL("DELETE FROM sqlite_sequence WHERE name = 'saved_schedules'")
+            database.execSQL("DELETE FROM sqlite_sequence WHERE name = 'jobs'")
 
             database.setTransactionSuccessful()
         } finally {
