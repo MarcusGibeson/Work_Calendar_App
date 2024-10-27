@@ -7,6 +7,7 @@ import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import android.util.Log
 import com.example.work_calendar_app.data.models.Job
+import com.example.work_calendar_app.data.models.SavedSchedule
 import java.text.SimpleDateFormat
 import java.time.Duration
 import java.time.LocalTime
@@ -331,6 +332,43 @@ class WorkScheduleDatabaseHelper(context: Context) : SQLiteOpenHelper(context, D
     fun getAllSavedSchedules(): Cursor {
         val db = this.readableDatabase
         return db.rawQuery("SELECT * FROM saved_schedules", null)
+    }
+
+    fun getSavedScheduleByName(scheduleName: String): SavedSchedule? {
+        val db = this.readableDatabase
+        val cursor = db.rawQuery("SELECT * FROM saved_schedules WHERE schedule_name = ?", arrayOf(scheduleName))
+
+        var savedSchedule: SavedSchedule? = null
+
+        if (cursor != null && cursor.moveToFirst()) {
+            val id = cursor.getLong(cursor.getColumnIndexOrThrow("id"))
+            val jobId = cursor.getLong(cursor.getColumnIndexOrThrow("job_id"))
+            val startTime = cursor.getString(cursor.getColumnIndexOrThrow("start_time"))
+            val endTime = cursor.getString(cursor.getColumnIndexOrThrow("end_time"))
+            val breakTime = cursor.getInt(cursor.getColumnIndexOrThrow("break_time_minutes"))
+            val payType = cursor.getString(cursor.getColumnIndexOrThrow("pay_type"))
+            val hourlyRate = cursor.getDouble(cursor.getColumnIndexOrThrow("pay_rate"))
+            val overtimeRate = cursor.getDouble(cursor.getColumnIndexOrThrow("overtime_rate"))
+            val commissionRate = cursor.getInt(cursor.getColumnIndexOrThrow("commission_rate"))
+            val salaryAmount = cursor.getDouble(cursor.getColumnIndexOrThrow("salary_amount"))
+
+            savedSchedule = SavedSchedule(
+                id = id,
+                jobId = jobId,
+                scheduleName = scheduleName,
+                startTime = startTime,
+                endTime = endTime,
+                breakTime = breakTime,
+                payType = payType,
+                hourlyRate = hourlyRate,
+                overtimeRate = overtimeRate,
+                commissionRate = commissionRate,
+                salaryAmount = salaryAmount
+            )
+        }
+
+        cursor?.close()
+        return savedSchedule
     }
 
     //Function to calculate hours worked

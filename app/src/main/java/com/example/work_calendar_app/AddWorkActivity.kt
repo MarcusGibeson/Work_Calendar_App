@@ -16,6 +16,7 @@ import com.example.work_calendar_app.data.database.WorkScheduleDatabaseHelper
 import java.util.Calendar
 import android.util.Log
 import android.view.View
+import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.ImageButton
@@ -27,10 +28,13 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.work_calendar_app.data.adapters.CommissionDetailsAdapter
 import com.example.work_calendar_app.data.adapters.JobAdapter
 import com.example.work_calendar_app.data.models.Job
+import com.example.work_calendar_app.data.repositories.WorkRepository
+import com.example.work_calendar_app.viewmodels.WorkViewModel
+import com.example.work_calendar_app.viewmodels.WorkViewModelFactory
 
 class AddWorkActivity : AppCompatActivity() {
 
-    private lateinit var dbHelper: WorkScheduleDatabaseHelper
+    private lateinit var workViewModel: WorkViewModel
     private lateinit var savedScheduleSpinner: Spinner
     private lateinit var workDate: EditText
     private lateinit var startTime: EditText
@@ -72,11 +76,18 @@ class AddWorkActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_add_work)
 
+        val workRepository = WorkRepository(WorkScheduleDatabaseHelper(this))
+        val factory = WorkViewModelFactory(workRepository)
+        workViewModel = factory.create(WorkViewModel::class.java)
+
+        workViewModel.getAllSavedSchedules()
+
+        workViewModel.loadAllJobs()
+
 
         Log.d("AddWorkActivity", "Activity created, initializing views.")
 
         //Initialize Values
-        dbHelper = WorkScheduleDatabaseHelper(this)
         savedScheduleSpinner = findViewById(R.id.savedScheduleSpinner)
         workDate = findViewById(R.id.workDate)
         startTime = findViewById(R.id.startTime)
@@ -113,11 +124,44 @@ class AddWorkActivity : AppCompatActivity() {
         btnSave = findViewById(R.id.btnSave)
         btnSaveSchedule = findViewById(R.id.saveScheduleButton)
         btnFinish = findViewById(R.id.btnFinish)
-        jobList = dbHelper.fetchJobsFromDatabase()
+        jobList = emptyList()
         jobSpinner = findViewById(R.id.jobSpinner)
         Log.d("AddWorkActivity", "Views initialized")
 
        updateUIState()
+
+        //Observe saved schedules after initiating data load
+        workViewModel.savedSchedules.observe(this) { schedules ->
+            val scheduleNames = schedules.map { it.scheduleName }
+
+            val updatedScheduleName = listOf("") + scheduleNames
+            val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, updatedScheduleName)
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+            savedScheduleSpinner.adapter = adapter
+
+            Log.d("AddWorkActivity", "Saved schedules loaded into spinner: ${scheduleNames.joinToString()}")
+        }
+
+        //Observe jobs after initiating data load
+        workViewModel.jobs.observe(this) { jobs ->
+            val adapter = object : ArrayAdapter<Job>(this, android.R.layout.simple_spinner_item, jobs) {
+                override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+                    val view = super.getView(position, convertView, parent)
+                    val job = getItem(position)
+                    (view as TextView).text = job?.name ?: ""
+                    return view
+                }
+
+                override fun getDropDownView(position: Int, convertView: View?, parent: ViewGroup): View {
+                    val view = super.getDropDownView(position, convertView, parent)
+                    val job = getItem(position)
+                    (view as TextView).text = job?.name ?: ""
+                    return view
+                }
+            }
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+            jobSpinner.adapter = adapter
+        }
 
         val selectedDay = intent.getIntExtra("selectedDay", -1)
         val selectedMonth = intent.getIntExtra("selectedMonth", -1)
@@ -129,10 +173,6 @@ class AddWorkActivity : AppCompatActivity() {
 
             Log.d("MainActivity", "Pre-filled date: $formattedDate")
         }
-
-
-        //Load saved schedules into the spinner
-        loadSavedSchedulesIntoSpinner()
 
         payTypeSpinner.onItemSelectedListener = object: AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>, view: View?, position: Int, id: Long) {
@@ -149,15 +189,14 @@ class AddWorkActivity : AppCompatActivity() {
         savedScheduleSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener{
             override fun onItemSelected(parent: AdapterView<*>, view: View?, position: Int, id: Long) {
                 val selectedScheduleName = parent.getItemAtPosition(position) as String
-                loadScheduleDetails(selectedScheduleName)
+                if (selectedScheduleName.isNotEmpty()) {
+                    loadScheduleDetails(selectedScheduleName)
+                }
             }
-
             override fun onNothingSelected(parent:AdapterView<*>?) {
                 //Do nothing if no item is selected
             }
         }
-
-        loadJobsIntoSpinner()
 
         //Set OnItemSelectedListener for jobSpinner
         jobSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener{
@@ -299,7 +338,7 @@ class AddWorkActivity : AppCompatActivity() {
             val scheduleName = "$startTime - $endTime"
 
             //Insert into saved schedules database
-            dbHelper.insertSavedSchedule(selectedJobId, scheduleName, startTime, endTime, breakTime, payType, hourlyRate, overtimePay, commissionRate, salaryAmount)
+            workViewModel.insertSavedSchedule(selectedJobId, scheduleName, startTime, endTime, breakTime, payType, hourlyRate, overtimePay, commissionRate, salaryAmount)
             updateUIState()
             Toast.makeText(this, "Schedule saved as $scheduleName", Toast.LENGTH_SHORT).show()
         }
@@ -309,91 +348,38 @@ class AddWorkActivity : AppCompatActivity() {
         }
     }
 
-
-
-
-
-    private fun generateCommissionTotal(commissionRate: Int, commissionDetailsCSV: String): Float {
-        //Split CSV
-        val salesList = commissionDetailsCSV.split(",")
-        Log.d("AddWorkActivity", "Sales list: $salesList")
-        val totalSales = salesList.map { it.toFloatOrNull() ?: 0f }.sum()
-        Log.d("AddWorkActivity", "Total sales: $totalSales")
-        val commissionPercentage = (commissionRate / 100.0f)
-
-        val totalCommission = totalSales * commissionPercentage
-        Log.d("AddWorkActivity", "Generate commission total: $totalCommission")
-        return totalCommission
-    }
-
-
-
-    //Spinner to pick a saved schedule
-    private fun loadSavedSchedulesIntoSpinner() {
-        val cursor = dbHelper.getAllSavedSchedules()
-        val scheduleNames = mutableListOf<String>()
-
-        //Add empty option as default
-        scheduleNames.add("")
-
-        if(cursor.moveToFirst()) {
-            do {
-                val scheduleName = cursor.getString(cursor.getColumnIndexOrThrow("schedule_name"))
-                scheduleNames.add(scheduleName)
-            } while (cursor.moveToNext())
-        }
-
-        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, scheduleNames)
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        savedScheduleSpinner.adapter = adapter
-    }
-
-    private fun loadJobsIntoSpinner() {
-        val jobs = dbHelper.fetchJobsFromDatabase()
-        val jobAdapter = JobAdapter(this, jobs)
-
-        jobSpinner.adapter = jobAdapter
-
-    }
-
     private fun loadScheduleDetails(scheduleName: String) {
-        val db = dbHelper.readableDatabase
-        val cursor = db.rawQuery("SELECT * FROM saved_schedules WHERE schedule_name = ?",arrayOf(scheduleName))
+       workViewModel.getSavedSchedule(scheduleName)
 
-        if (cursor.moveToFirst()) {
-            val startTime = cursor.getString(cursor.getColumnIndexOrThrow("start_time"))
-            val endTime = cursor.getString(cursor.getColumnIndexOrThrow("end_time"))
-            val breakTime = cursor.getInt(cursor.getColumnIndexOrThrow("break_time_minutes"))
-            val payTypeFromDB = cursor.getString(cursor.getColumnIndexOrThrow("pay_type"))
-            val payRate = cursor.getDouble(cursor.getColumnIndexOrThrow("pay_rate"))
-            val overtimeRate = cursor.getDouble(cursor.getColumnIndexOrThrow("overtime_rate"))
-            val commissionRate = cursor.getInt(cursor.getColumnIndexOrThrow("commission_rate"))
-            val salaryAmount = cursor.getDouble(cursor.getColumnIndexOrThrow("salary_amount"))
+        workViewModel.savedSchedule.observe(this) { savedSchedule ->
+            savedSchedule?.let {
+                // Populate fields with the data
+                startTimeEditText.setText(it.startTime)
+                endTimeEditText.setText(it.endTime)
+                breakTimeEditText.setText(it.breakTime.toString())
+                payRateEditText.setText(it.hourlyRate.toString())
+                overtimePayEditText.setText(it.overtimeRate.toString())
+                commissionRateEditText.setText(it.commissionRate.toString())
+                salaryAmountEditText.setText(it.salaryAmount.toString())
 
+                // Set the pay type spinner
+                val payTypes = arrayOf("Hourly", "Salary", "Commission")
+                val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, payTypes)
+                adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+                payTypeSpinner.adapter = adapter
 
-            //Populate the fields with the loaded data
-            startTimeEditText.setText(startTime)
-            endTimeEditText.setText(endTime)
-            breakTimeEditText.setText(breakTime.toString())
-            payRateEditText.setText(payRate.toString())
-            overtimePayEditText.setText(overtimeRate.toString())
-            commissionRateEditText.setText(commissionRate.toString())
-            salaryAmountEditText.setText(salaryAmount.toString())
+                val spinnerPosition = adapter.getPosition(it.payType)
+                if (spinnerPosition >= 0) {
+                    payTypeSpinner.setSelection(spinnerPosition)
+                }
 
-
-            //Set the selected pay type in the spinner
-            val payTypes = arrayOf("Hourly", "Salary", "Commission")
-            val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, payTypes)
-            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-            payTypeSpinner.adapter = adapter
-
-            //Find the position of the value from the database and set the selection
-            val spinnerPosition = adapter.getPosition(payTypeFromDB)
-            if (spinnerPosition >= 0) {
-                payTypeSpinner.setSelection(spinnerPosition)
+                updatePayTypeView(it.payType)
+            } ?: run {
+                Toast.makeText(this,
+                    "No saved schedule found with name: $scheduleName", Toast.LENGTH_SHORT).show()
             }
         }
-        cursor.close()
+
     }
 
     private fun updatePayTypeView(payType: String) {

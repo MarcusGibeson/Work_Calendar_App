@@ -13,6 +13,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.work_calendar_app.data.models.Job
+import com.example.work_calendar_app.data.models.SavedSchedule
 import com.example.work_calendar_app.data.models.WorkEntry
 import com.example.work_calendar_app.data.repositories.WorkRepository
 import kotlinx.coroutines.Dispatchers
@@ -25,6 +26,14 @@ import java.time.LocalDate
 
 
 class WorkViewModel (private val workRepository: WorkRepository) : ViewModel() {
+
+    //LiveData for the list of saved schedules
+    private val _savedSchedules = MutableLiveData<List<SavedSchedule>>()
+    val savedSchedules: LiveData<List<SavedSchedule>> get() = _savedSchedules
+
+    //LiveData to hold a saved schedule detail
+    private val _savedSchedule = MutableLiveData<SavedSchedule?>()
+    val savedSchedule: LiveData<SavedSchedule?> get() = _savedSchedule
 
     //LiveData for the list of jobs
     private val _jobs = MutableLiveData<List<Job>>()
@@ -88,11 +97,24 @@ class WorkViewModel (private val workRepository: WorkRepository) : ViewModel() {
                //Fetch all work entries from the repository
                val workEntriesList = workRepository.getAllWorkEntries()
 
+               //Sort the work entries by workDate in ascending order
+               val sortedWorkEntriesList = workEntriesList.values
+                   .filter {workEntry ->
+                       val workDate = workEntry.workDate
+                       //Filter entries for the specified month and year
+                       workDate != null && workDate.length >= 10 &&
+                               workDate.substring(0,4).toInt() == currentYear &&
+                               workDate.substring(5,7).toInt() == currentMonth
+                   }
+                   .sortedBy { workEntry ->
+                       LocalDate.parse(workEntry.workDate)
+                   }
+
                val newWorkEntries = mutableMapOf<Long, WorkEntry>()
                val newWorkDays = mutableListOf<Int>()
 
                //Process the list of work entries
-               for ((_, workEntry) in workEntriesList) {
+               for (workEntry in sortedWorkEntriesList) {
                    val workDate = workEntry.workDate
                    if (workDate != null && workDate.length >= 10) {
                        val workYear = workDate.substring(0, 4).toInt()
@@ -271,5 +293,41 @@ class WorkViewModel (private val workRepository: WorkRepository) : ViewModel() {
             workDate.dayOfMonth == day && workDate.monthValue == currentMonth && workDate.year == currentYear
         }
         return matchingEntry?.jobId ?: -1
+    }
+
+    fun insertSavedSchedule(jobId: Long, scheduleName: String, startTime: String, endTime: String, breakTime: Int, payType: String, hourlyRate: Double, overtimePay: Double, commissionRate: Int, salaryAmount: Double) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                workRepository.insertSavedSchedule(jobId, scheduleName, startTime, endTime, breakTime, payType, hourlyRate, overtimePay, commissionRate, salaryAmount)
+            } catch (e: Exception) {
+                Log.e("WorkViewModel", "Failed to insert saved schedule: ${e.message}")
+            }
+        }
+    }
+
+    fun getAllSavedSchedules() {
+        viewModelScope.launch {
+            try {
+                val schedules = workRepository.getAllSavedSchedules()
+                Log.d("WorkViewModel", "Fetched saved schedules: ${schedules.joinToString()}")
+                _savedSchedules.value = schedules
+            } catch (e: Exception) {
+                Log.e("WorkViewModel", "Failed to load saved schedules: ${e.message}")
+            }
+        }
+    }
+
+    fun getSavedSchedule(scheduleName: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val savedSchedule = workRepository.getSavedScheduleByName(scheduleName)
+                withContext(Dispatchers.Main) {
+                    _savedSchedule.value = savedSchedule
+                }
+            } catch (e: Exception) {
+                Log.e("WorkViewModel", "Error getting saved schedule for: $scheduleName", e)
+                _savedSchedule.postValue(null)
+            }
+        }
     }
 }

@@ -4,6 +4,7 @@ import android.util.Log
 import com.example.work_calendar_app.data.models.WorkEntry
 import com.example.work_calendar_app.data.database.WorkScheduleDatabaseHelper
 import com.example.work_calendar_app.data.models.Job
+import com.example.work_calendar_app.data.models.SavedSchedule
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
@@ -91,6 +92,61 @@ class WorkRepository (private val dbHelper: WorkScheduleDatabaseHelper) {
         }
         return@withContext workEntries
     }
+
+    //Insert saved schedule into database
+    suspend fun insertSavedSchedule(jobId: Long, scheduleName: String, startTime: String, endTime: String, breakTime: Int, payType: String, hourlyRate: Double, overtimeRate: Double, commissionRate: Int, salaryAmount: Double) {
+        withContext(Dispatchers.IO) {
+            dbHelper.insertSavedSchedule(jobId, scheduleName, startTime, endTime, breakTime, payType, hourlyRate, overtimeRate, commissionRate, salaryAmount)
+        }
+    }
+
+    //Fetch all saved schedules
+    suspend fun getAllSavedSchedules(): List<SavedSchedule> {
+        return withContext(Dispatchers.IO) {
+            val cursor = dbHelper.getAllSavedSchedules()
+
+            val savedSchedules = mutableListOf<SavedSchedule>()
+            if (cursor != null && cursor.moveToFirst()) {
+                do {
+                    val id = cursor.getLong(cursor.getColumnIndexOrThrow("id"))
+                    val jobId = cursor.getLong(cursor.getColumnIndexOrThrow("job_id"))
+                    val scheduleName = cursor.getString(cursor.getColumnIndexOrThrow("schedule_name"))
+                    val startTime = cursor.getString(cursor.getColumnIndexOrThrow("start_time"))
+                    val endTime = cursor.getString(cursor.getColumnIndexOrThrow("end_time"))
+                    val breakTime = cursor.getInt(cursor.getColumnIndexOrThrow("break_time_minutes"))
+                    val payType = cursor.getString(cursor.getColumnIndexOrThrow("pay_type"))
+                    val hourlyRate = cursor.getDouble(cursor.getColumnIndexOrThrow("pay_rate"))
+                    val overtimeRate = cursor.getDouble(cursor.getColumnIndexOrThrow("overtime_rate"))
+                    val commissionRate = cursor.getInt(cursor.getColumnIndexOrThrow("commission_rate"))
+                    val salaryAmount = cursor.getDouble(cursor.getColumnIndexOrThrow("salary_amount"))
+
+                    savedSchedules.add(
+                        SavedSchedule(
+                            id = id,
+                            jobId = jobId,
+                            scheduleName = scheduleName,
+                            startTime = startTime,
+                            endTime = endTime,
+                            breakTime = breakTime,
+                            payType = payType,
+                            hourlyRate = hourlyRate,
+                            overtimeRate = overtimeRate,
+                            commissionRate = commissionRate,
+                            salaryAmount = salaryAmount
+                        )
+                    )
+                } while (cursor.moveToNext())
+            }
+            cursor.close()
+            savedSchedules
+        }
+    }
+
+    //retrieve the saved schedule by name
+    suspend fun getSavedScheduleByName(scheduleName: String): SavedSchedule? {
+        return dbHelper.getSavedScheduleByName(scheduleName)
+    }
+
 
     //Fetch all jobs from the database
     suspend fun getAllJobs(): List<Job> = withContext(Dispatchers.IO) {
