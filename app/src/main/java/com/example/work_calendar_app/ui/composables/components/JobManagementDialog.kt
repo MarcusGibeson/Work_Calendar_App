@@ -1,6 +1,7 @@
 package com.example.work_calendar_app.ui.composables.components
 
 import android.content.Context
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,6 +15,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -33,6 +35,14 @@ fun JobManagementDialog(
     val context = LocalContext.current
     val sharedPreferences =
         context.getSharedPreferences("user_preferences", Context.MODE_PRIVATE)
+    var showToast by remember { mutableStateOf(false) }
+
+    if (showToast) {
+        LaunchedEffect(Unit) {
+            Toast.makeText(context, "Must be 9 characters or fewer. Try again", Toast.LENGTH_SHORT).show()
+            showToast = false
+        }
+    }
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -50,7 +60,13 @@ fun JobManagementDialog(
 
                 TextField(
                     value = jobName,
-                    onValueChange = { jobName = it },
+                    onValueChange = { newValue ->
+                        if (newValue.length <= 9) {
+                            jobName = newValue
+                        } else {
+                            showToast = true
+                        }
+                                    },
                     label = { Text("Job Name") },
                     modifier = Modifier.fillMaxWidth()
                 )

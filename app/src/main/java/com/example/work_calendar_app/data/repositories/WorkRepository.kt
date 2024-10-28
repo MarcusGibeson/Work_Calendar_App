@@ -27,6 +27,22 @@ class WorkRepository (private val dbHelper: WorkScheduleDatabaseHelper) {
         return@withContext workEntries
     }
 
+    //Fetch all work entries from the database by job
+    suspend fun getAllWorkEntriesByJob(jobId: Long): Map<Long, WorkEntry> = withContext(Dispatchers.IO) {
+        val workEntries = mutableMapOf<Long, WorkEntry>()
+        val cursor = dbHelper.getAllWorkSchedule()
+
+        if (cursor != null && cursor.moveToFirst()) {
+            do {
+                val workEntry = cursorToWorkEntry(cursor)
+                if (workEntry != null && workEntry.jobId == jobId) {
+                    workEntries[workEntry.id] = workEntry
+                }
+            } while (cursor.moveToNext())
+        }
+        return@withContext workEntries
+    }
+
     //Fetch work entry for specific date
     suspend fun getWorkEntryForDate(date: String): WorkEntry = withContext(Dispatchers.IO) {
         val cursor = dbHelper.getWorkScheduleByDate(date)

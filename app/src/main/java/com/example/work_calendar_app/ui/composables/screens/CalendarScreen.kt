@@ -1,5 +1,6 @@
 package com.example.work_calendar_app.ui.composables.screens
 
+import JobSelectionBar
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
@@ -7,6 +8,7 @@ import android.content.SharedPreferences
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -236,33 +238,16 @@ fun CalendarScreen(viewModel: WorkViewModel) {
             )
         },
         content = { innerPadding ->
-            Column(modifier = Modifier.padding(innerPadding)) {
-                //Job bar under top bar
-                if (jobs.isNotEmpty()) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(30.dp),
-                        horizontalArrangement = Arrangement.SpaceEvenly
-                    ) {
-                        val displayedJobs = jobs.take(4)
-                        val jobWeight = 1f / displayedJobs.size
-
-                        //Create segments for each job
-                        displayedJobs.forEach { job ->
-                            val jobBackgroundColor = jobColors.value[job.id] ?: Color.Gray
-                            Box(
-                                modifier = Modifier
-                                    .weight(jobWeight)
-                                    .fillMaxHeight()
-                                    .background(jobBackgroundColor),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(text = job.name, color = baseTextColor)
-                            }
-                        }
-                    }
-                }
+            Column() {
+                JobSelectionBar(
+                    jobs = jobs,
+                    jobColors = jobColors,
+                    viewModel = viewModel,
+                    currentMonth = currentMonth.monthValue,
+                    currentYear = currentMonth.year,
+                    baseTextColor = baseTextColor,
+                    innerPadding = innerPadding
+                )
                 CalendarContent(
                     viewModel,
                     jobColorMap = jobColorMap,
