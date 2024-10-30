@@ -80,6 +80,7 @@ fun CalendarContent(
         val errorMessage by viewModel.errorMessage.collectAsState()
 
         val isSelectingRange by viewModel.isSelectingRange.observeAsState(initial = false)
+        val currentMonth by viewModel.currentMonth.collectAsState()
 
 
         if (isLoading) {
@@ -90,7 +91,6 @@ fun CalendarContent(
             Text(text = it, color = Color.Red)
         }
 
-        var currentMonth by remember { mutableStateOf(LocalDate.now()) }
         var showPopup by remember { mutableStateOf(false) }
         var selectedDay by remember { mutableIntStateOf(-1) }
 
@@ -104,7 +104,7 @@ fun CalendarContent(
         val daysInMonth = currentMonth.lengthOfMonth()
 
         //Dummy data for workDays and workEntries
-        val workDays by remember { derivedStateOf { viewModel.workDays } }
+        val workDays by viewModel.workDays.collectAsState()
         val workEntries by viewModel.workEntries.collectAsState()
         val sharedPreferences = context.getSharedPreferences("user_preferences", Context.MODE_PRIVATE)
 
@@ -149,7 +149,7 @@ fun CalendarContent(
 
         //Fetch data from database in a LaunchedEffect
         LaunchedEffect(currentMonth, workEntriesChanged) {
-            viewModel.loadAllWorkEntries(
+            viewModel.loadAllWorkEntriesDetails(
                 currentMonth = currentMonth.monthValue,
                 currentYear = currentMonth.year
             )
@@ -216,13 +216,11 @@ fun CalendarContent(
                             if (accumulatedDrag > swipeThreshold) {
                                 //Swipe right (previous month)
                                 accumulatedDrag = 0f
-                                currentMonth = currentMonth.minusMonths(1)
-                                onMonthChanged(currentMonth.month)
+                                viewModel.decrementMonth()
                             } else if (accumulatedDrag < -swipeThreshold) {
                                 //Swipe left (next month)
                                 accumulatedDrag = 0f
-                                currentMonth = currentMonth.plusMonths(1)
-                                onMonthChanged(currentMonth.month)
+                                viewModel.incrementMonth()
                             }
                         },
                         onDragEnd = {
@@ -248,8 +246,7 @@ fun CalendarContent(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Button(onClick = {
-                        currentMonth = currentMonth.minusMonths(1)
-                        onMonthChanged(currentMonth.month)
+                        viewModel.decrementMonth()
                     },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = baseButtonColor,
@@ -267,8 +264,7 @@ fun CalendarContent(
                         fontSize = 16.sp
                     )
                     Button(onClick = {
-                        currentMonth = currentMonth.plusMonths(1)
-                        onMonthChanged(currentMonth.month)
+                        viewModel.incrementMonth()
                     },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = baseButtonColor,
@@ -353,7 +349,7 @@ fun CalendarContent(
                     jobColorMap = jobColorMap,
                     currentMonth,
                     daysInMonth = daysInMonth,
-                    workDays = workDays.toList(),
+                    workDays = workDays,
                     isSelectingRange
                 ) { day ->
                     Log.d("WorkCalendar", "onDaySelected triggered: Day: $day")

@@ -24,8 +24,9 @@ import com.example.work_calendar_app.viewmodels.WorkViewModel
 @Composable
 fun JobSelectionBar(
     jobs: List<Job>,
-    jobColors: State<Map<Long, Color>>,
+    jobColors: Map<Long, Color>,
     viewModel: WorkViewModel,
+    selectedJobId: Long?,
     currentMonth: Int,
     currentYear: Int,
     baseTextColor: Color,
@@ -48,20 +49,20 @@ fun JobSelectionBar(
 
                 //Create segments for each job
                 displayedJobs.forEach { job ->
-                    val jobBackgroundColor = jobColors.value[job.id] ?: Color.Gray
+                    val jobBackgroundColor = jobColors[job.id] ?: Color.Gray
                     Box(
                         modifier = Modifier
                             .weight(jobWeight)
                             .fillMaxHeight()
-                            .background(jobBackgroundColor),
-//                            .clickable {
-//                                if (selectedJobId == job.id) {
-//                                    //Switch to show all entries
-//                                    viewModel.setJobSpecificView(null)
-//                                } else {
-//                                    viewModel.setJobSpecificView(job.id)
-//                                }
-//                            },
+                            .background(jobBackgroundColor)
+                            .clickable {
+                                if (selectedJobId == job.id) {
+                                    //Switch to show all entries
+                                    viewModel.setJobSpecificView(null)
+                                } else {
+                                    viewModel.setJobSpecificView(job.id)
+                                }
+                            },
                         contentAlignment = Alignment.Center
                     ) {
                         Text(text = job.name, color = baseTextColor)

@@ -23,15 +23,26 @@ class WorkEntriesViewModel (
             try {
                 val workEntriesList = workRepository.getAllWorkEntries()
 
-                //Filter and sort work entries for the current month and year
+                //Sort the work entries by workDate in ascending order
+                val filtedAndSortedWorkEntries  = workEntriesList.values
+                    .filter {workEntry ->
+                        val workDate = workEntry.workDate
+                        //Filter entries for the specified month and year
+                        workDate != null && workDate.length >= 10 &&
+                                workDate.substring(0,4).toInt() == currentYear &&
+                                workDate.substring(5,7).toInt() == currentMonth
+                    }
+                    .sortedBy { workEntry ->
+                        LocalDate.parse(workEntry.workDate)
+                    }
+
                 val newWorkEntries = mutableMapOf<Long, WorkEntry>()
                 val newWorkDays = mutableListOf<Int>()
-                workEntriesList.values.filter {
-                    val workDate = LocalDate.parse(it.workDate)
-                    workDate.monthValue == currentMonth && workDate.year == currentYear
-                }.forEach {
-                    newWorkEntries[it.id] = it
-                    newWorkDays.add(LocalDate.parse(it.workDate).dayOfMonth)
+
+                filtedAndSortedWorkEntries.forEach { workEntry ->
+                    val workDate = LocalDate.parse(workEntry.workDate)
+                    newWorkEntries[workEntry.id] = workEntry
+                    newWorkDays.add(workDate.dayOfMonth)
                 }
 
                 //Update calendar related state variables
@@ -46,7 +57,7 @@ class WorkEntriesViewModel (
     }
 
     //Function to load all work entries into details from the repository
-    fun loadAllWorkEntries(currentMonth: Int, currentYear: Int) {
+    fun loadAllWorkEntriesDetails(currentMonth: Int, currentYear: Int) {
         viewModelScope.launch {
             sharedState.setLoading(true)
             try {
@@ -170,7 +181,7 @@ class WorkEntriesViewModel (
     fun addOrUpdateWorkEntry(workEntry: WorkEntry) {
         viewModelScope.launch(Dispatchers.IO) {
             workRepository.addOrUpdateWorkEntry(workEntry)
-            loadAllWorkEntries(sharedState.currentMonth, sharedState.currentYear) //reload the entries after updating
+            loadAllWorkEntriesDetails(sharedState.currentMonth.value.monthValue, sharedState.currentMonth.value.year) //reload the entries after updating
         }
     }
 
@@ -181,7 +192,7 @@ class WorkEntriesViewModel (
                 val isSuccess = workRepository.addOrUpdateWorkEntry(workEntry)
                 withContext(Dispatchers.Main) {
                     if (isSuccess) {
-                        loadAllWorkEntries(sharedState.currentMonth, sharedState.currentYear)
+                        loadAllWorkEntriesDetails(sharedState.currentMonth.value.monthValue, sharedState.currentMonth.value.year)
                         onSuccess()
                     } else {
                         onError()
@@ -203,7 +214,7 @@ class WorkEntriesViewModel (
     fun deleteWorkEntry(id: Long) {
         viewModelScope.launch(Dispatchers.IO) {
             workRepository.deleteWorkEntry(id)
-            loadAllWorkEntries(sharedState.currentMonth, sharedState.currentYear) //reload the entries after deletion
+            loadAllWorkEntriesDetails(sharedState.currentMonth.value.monthValue, sharedState.currentMonth.value.year) //reload the entries after deletion
         }
     }
 }

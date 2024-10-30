@@ -32,6 +32,8 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableIntStateOf
@@ -64,15 +66,22 @@ fun CalendarScreen(viewModel: WorkViewModel) {
     Log.d("Recomposition", "CalendarScreen recomposed")
 
     val jobs by viewModel.jobs.observeAsState(emptyList())
+    val selectedJobId by viewModel.selectedJobId.collectAsState()
+    val workDays by viewModel.workDays.collectAsState()
+    val workEntries by viewModel.workEntries.collectAsState()
+
     var showJobDialog by remember { mutableStateOf(false) }
     val isJobLimitReached = jobs.size >= 4
 
-    var workEntries by remember { mutableStateOf(mutableMapOf<Long, WorkEntry>()) }
     var entryEdited by remember { mutableStateOf(false) }
     var workEntriesChanged by remember { mutableIntStateOf(0) }
     var selectedDay by remember { mutableIntStateOf(-1) }
     var firstSelectedDate: String? by remember { mutableStateOf(null) }
     var secondSelectedDate: String? by remember { mutableStateOf(null) }
+
+    val isDataLoaded by viewModel.isDataLoaded.collectAsState()
+
+    val jobColorMap by viewModel.jobColorMap.collectAsState()
 
 
     var currentMonth by remember { mutableStateOf(LocalDate.now()) }
@@ -114,20 +123,10 @@ fun CalendarScreen(viewModel: WorkViewModel) {
     }
 
 
-    val jobColorMap = mutableMapOf<Long, Color>()
-    val jobColors = remember { mutableStateOf(jobColorMap) }
 
     //Load colors from shared preferences
     LaunchedEffect(jobs) {
-        jobColorMap.clear()
-        val colorList = listOf(workDay1Color, workDay2Color, workDay3Color, workDay4Color)
-
-        jobs.forEachIndexed { index, job ->
-            if (index < colorList.size) {
-                jobColorMap[job.id] = colorList[index]
-            }
-        }
-        jobColors.value = jobColorMap.toMutableMap()
+        viewModel.loadJobColors(jobs, sharedPreferences)
         Log.d("CalendarScreen", "Job colors updated: $jobColorMap")
     }
 
@@ -241,8 +240,9 @@ fun CalendarScreen(viewModel: WorkViewModel) {
             Column() {
                 JobSelectionBar(
                     jobs = jobs,
-                    jobColors = jobColors,
+                    jobColors = jobColorMap,
                     viewModel = viewModel,
+                    selectedJobId = selectedJobId,
                     currentMonth = currentMonth.monthValue,
                     currentYear = currentMonth.year,
                     baseTextColor = baseTextColor,

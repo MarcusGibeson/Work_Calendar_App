@@ -24,24 +24,29 @@ class SharedCalendarState {
     private val _workEntry = MutableStateFlow<WorkEntry?>(null)
     val workEntry = _workEntry.asStateFlow()
 
-    private val _workDays = mutableStateListOf<Int>()
-    val workDays: List<Int> get() = _workDays
+    private val _workDays = MutableStateFlow<List<Int>>(emptyList())
+    val workDays = _workDays.asStateFlow()
 
     //Properties to hold entries for detail list
     private val _workDetailsEntries = MutableStateFlow<Map<Long, WorkEntry>>(emptyMap())
     val workDetailsEntries = _workDetailsEntries.asStateFlow()
 
-    val currentMonth = LocalDate.now().monthValue
-    val currentYear = LocalDate.now().year
+    //Properties for current Month on calendar
+    private val _currentMonth = MutableStateFlow(LocalDate.now())
+    val currentMonth = _currentMonth.asStateFlow()
+
 
     //Update functions
+    fun setCurrentMonth(newMonth: LocalDate) {
+        _currentMonth.value = newMonth
+    }
+
     fun updateWorkEntries(newEntries: Map<Long, WorkEntry>) {
         _workEntries.value = newEntries
     }
 
     fun updateWorkDays(newDays: List<Int>) {
-        _workDays.clear()
-        _workDays.addAll(newDays)
+        _workDays.value = newDays
     }
 
     fun updateWorkDetails(newDetails: Map<Long, WorkEntry>) {

@@ -17,7 +17,8 @@ import java.time.LocalDate
 class JobsViewModel (
     private val workRepository: WorkRepository,
     private val viewModelScope: CoroutineScope,
-    private val sharedState: SharedCalendarState
+    private val sharedState: SharedCalendarState,
+    private val loadWorkEntriesForCalendar: (Int, Int) -> Unit
 ) {
 
     //LiveData for the list of jobs
@@ -31,18 +32,20 @@ class JobsViewModel (
     private val _selectedJobId = MutableStateFlow<Long?>(null)
     val selectedJobId = _selectedJobId.asStateFlow()
 
+    val currentMonth = sharedState.currentMonth.value.monthValue
+    val currentYear = sharedState.currentMonth.value.year
 
-    //    //TOggle between showing all work Entries or job-specific entries
-//    fun setJobSpecificView(jobId: Long?) {
-//        _isJobSpecificView.value = jobId != null
-//        _selectedJobId.value = jobId
-//        if (jobId != null) {
-//            loadWorkEntriesByJob(currentMonth, currentYear, jobId)
-//        } else {
-//            loadWorkEntriesForCalendar(currentMonth, currentYear)
-//            loadAllWorkEntries(currentMonth, currentYear)
-//        }
-//    }
+
+    //Toggle between showing all work Entries or job-specific entries
+    fun setJobSpecificView(jobId: Long?) {
+        _isJobSpecificView.value = jobId != null
+        _selectedJobId.value = jobId
+        if (jobId != null) {
+            loadWorkEntriesByJob(currentMonth, currentYear, jobId)
+        } else {
+            loadWorkEntriesForCalendar(currentMonth, currentYear)
+        }
+    }
 
 
     //Load all of job on calendar
@@ -107,7 +110,7 @@ class JobsViewModel (
         //Find a work entry where the workDate matches the specified day with the current month
         val matchingEntry = sharedState.workEntries.value.values.find { entry ->
             val workDate = LocalDate.parse(entry.workDate)
-            workDate.dayOfMonth == day && workDate.monthValue == sharedState.currentMonth && workDate.year == sharedState.currentYear
+            workDate.dayOfMonth == day && workDate.monthValue == sharedState.currentMonth.value.monthValue && workDate.year == sharedState.currentMonth.value.year
         }
         return matchingEntry?.jobId ?: -1
     }
