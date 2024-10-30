@@ -16,6 +16,10 @@ import com.example.work_calendar_app.data.models.Job
 import com.example.work_calendar_app.data.models.SavedSchedule
 import com.example.work_calendar_app.data.models.WorkEntry
 import com.example.work_calendar_app.data.repositories.WorkRepository
+import com.example.work_calendar_app.viewmodels.components.JobsViewModel
+import com.example.work_calendar_app.viewmodels.components.SavedSchedulesViewModel
+import com.example.work_calendar_app.viewmodels.components.SharedCalendarState
+import com.example.work_calendar_app.viewmodels.components.WorkEntriesViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -27,24 +31,21 @@ import java.time.LocalDate
 
 class WorkViewModel (private val workRepository: WorkRepository) : ViewModel() {
 
-    //LiveData for the list of saved schedules
-    private val _savedSchedules = MutableLiveData<List<SavedSchedule>>()
-    val savedSchedules: LiveData<List<SavedSchedule>> get() = _savedSchedules
+    private val sharedState = SharedCalendarState()
 
-    //LiveData to hold a saved schedule detail
-    private val _savedSchedule = MutableLiveData<SavedSchedule?>()
-    val savedSchedule: LiveData<SavedSchedule?> get() = _savedSchedule
+    val jobsViewModel = JobsViewModel(workRepository, viewModelScope, sharedState)
+    val workEntriesModel = WorkEntriesViewModel(workRepository, viewModelScope, sharedState)
+    val savedSchedulesModel = SavedSchedulesViewModel(workRepository, viewModelScope, sharedState)
 
-    //LiveData for the list of jobs
-    private val _jobs = MutableLiveData<List<Job>>()
-    val jobs: LiveData<List<Job>> get() = _jobs
+    //Access the shared state
+    val workEntries = sharedState.workEntries
+    val workDays = sharedState.workDays
+    val loading = sharedState.loading
+    val errorMessage = sharedState.errorMessage
 
-    //Boolean to track whether a specific job is being filtered
-    private val _isJobSpecificView = MutableStateFlow(false)
-    val isJobSpecificView = _isJobSpecificView.asStateFlow()
-
-    private val _selectedJobId = MutableStateFlow<Long?>(null)
-    val selectedJobId = _selectedJobId.asStateFlow()
+    val jobs = jobsViewModel.jobs
+    val savedSchedules = savedSchedulesModel.savedSchedules
+    val savedSchedule = savedSchedulesModel.savedSchedule
 
     //State to toggle selecting range
     private val _isSelectingRange = MutableLiveData(false)
@@ -61,34 +62,11 @@ class WorkViewModel (private val workRepository: WorkRepository) : ViewModel() {
     private val _selectedDate = MutableStateFlow<Long?>(null)
     val selectedDate = _selectedDate.asStateFlow()
 
-    //State to hold loading value
-    private val _loading = MutableStateFlow(false)
-    val loading: StateFlow<Boolean> = _loading
-
-    private val _errorMessage = MutableStateFlow<String?>(null)
-    val errorMessage: StateFlow<String?> = _errorMessage
-
-    //Properties to hold work entries and work days for calendar
-    private val _workEntries = MutableStateFlow<Map<Long, WorkEntry>>(emptyMap())
-    val workEntries = _workEntries.asStateFlow()
-
-    private val _workEntry = MutableStateFlow<WorkEntry?>(null)
-    val workEntry = _workEntry.asStateFlow()
-
-    private val _workDays = mutableStateListOf<Int>()
-    val workDays: List<Int> get() = _workDays
-
-    //Properties to hold entries for detail list
-    private val _workDetailsEntries = MutableStateFlow<Map<Long, WorkEntry>>(emptyMap())
-    val workDetailsEntries = _workDetailsEntries.asStateFlow()
-
-    val currentMonth = LocalDate.now().monthValue
-    val currentYear = LocalDate.now().year
 
     init {
         //Load all work entries when the ViewModel is created
-        loadWorkEntriesForCalendar(currentMonth, currentYear)
-        loadAllWorkEntries(currentMonth, currentYear)
+        loadWorkEntriesForCalendar(sharedState.currentMonth, sharedState.currentYear)
+//        loadAllWorkEntries(currentMonth, currentYear)
     }
 
     //Set selected dates
@@ -100,319 +78,77 @@ class WorkViewModel (private val workRepository: WorkRepository) : ViewModel() {
         _secondSelectedDate.value = date
     }
 
-    //TOggle between showing all work Entries or job-specific entries
-    fun setJobSpecificView(jobId: Long?) {
-        _isJobSpecificView.value = jobId != null
-        _selectedJobId.value = jobId
-        if (jobId != null) {
-            loadWorkEntriesByJob(currentMonth, currentYear, jobId)
-        } else {
-            loadWorkEntriesForCalendar(currentMonth, currentYear)
-//            loadAllWorkEntries(currentMonth, currentYear)
-        }
-    }
-
-    //Load all entries for the calendar
-    fun loadWorkEntriesForCalendar(currentMonth: Int, currentYear: Int) {
-        viewModelScope.launch {
-            _loading.value = true
-            try {
-                val workEntriesList = workRepository.getAllWorkEntries()
-
-                //Filter and sort work entries for the current month and year
-                val newWorkEntries = mutableMapOf<Long, WorkEntry>()
-                val newWorkDays = mutableListOf<Int>()
-                workEntriesList.values.filter {
-                    val workDate = LocalDate.parse(it.workDate)
-                    workDate.monthValue == currentMonth && workDate.year == currentYear
-                }.forEach {
-                    newWorkEntries[it.id] = it
-                    newWorkDays.add(LocalDate.parse(it.workDate).dayOfMonth)
-                }
-
-                //Update calendar related state variables
-                _workEntries.value = newWorkEntries
-                _workDays.clear()
-                _workDays.addAll(newWorkDays)
-            } catch (e: Exception) {
-                _errorMessage.value = "Failed to load calendar entries"
-            } finally {
-                _loading.value = false
-            }
-        }
-    }
-
-    //Load all of job on calendar
-    fun loadWorkEntriesByJob(currentMonth: Int, currentYear: Int, jobId: Long) {
-        viewModelScope.launch {
-            _loading.value = true
-            try {
-                val workEntriesList = workRepository.getAllWorkEntriesByJob(jobId)
-
-                //Filter and sort work entries for the current month and year
-                val newWorkEntries = mutableMapOf<Long, WorkEntry>()
-                val newWorkDays = mutableListOf<Int>()
-                workEntriesList.values.filter {
-                    val workDate = LocalDate.parse(it.workDate)
-                    workDate.monthValue == currentMonth && workDate.year == currentYear
-                }.forEach {
-                    newWorkEntries[it.id] = it
-                    newWorkDays.add(LocalDate.parse(it.workDate).dayOfMonth)
-                }
-
-                //Update calendar related state variables
-                _workEntries.value = newWorkEntries
-                _workDays.clear()
-                _workDays.addAll(newWorkDays)
-
-                //Update work details list
-                _workDetailsEntries.value = newWorkEntries
-            } catch (e: Exception) {
-                _errorMessage.value = "Failed to load calendar entries"
-            } finally {
-                _loading.value = false
-            }
-        }
-    }
-
-
-    //Function to load all work entries from the repository
-    fun loadAllWorkEntries(currentMonth: Int, currentYear: Int) {
-       viewModelScope.launch {
-           _loading.value = true
-           try {
-               //Fetch all work entries from the repository
-               val workEntriesList = workRepository.getAllWorkEntries()
-
-               //Sort the work entries by workDate in ascending order
-               val sortedWorkEntriesList = workEntriesList.values
-                   .filter {workEntry ->
-                       val workDate = workEntry.workDate
-                       //Filter entries for the specified month and year
-                       workDate != null && workDate.length >= 10 &&
-                               workDate.substring(0,4).toInt() == currentYear &&
-                               workDate.substring(5,7).toInt() == currentMonth
-                   }
-                   .sortedBy { workEntry ->
-                       LocalDate.parse(workEntry.workDate)
-                   }
-
-               val newWorkEntries = mutableMapOf<Long, WorkEntry>()
-               val newWorkDays = mutableListOf<Int>()
-
-               //Process the list of work entries
-               for (workEntry in sortedWorkEntriesList) {
-                   val workDate = workEntry.workDate
-                   if (workDate != null && workDate.length >= 10) {
-                       val workYear = workDate.substring(0, 4).toInt()
-                       val workMonth = workDate.substring(5, 7).toInt()
-                       val workDay = workDate.substring(8, 10).toInt()
-
-                       //Check if the workDate belong to the current month and year in calendar
-                       if (workMonth == currentMonth && workYear == currentYear) {
-                           //Add the work entry to the list only if it's in the current month and year
-                           newWorkEntries[workEntry.id] = workEntry
-                           newWorkDays.add(workDay)
-                       }
-                   } else {
-                       Log.e("WorkViewModel", "Invalid work date format: $workDate")
-                   }
-               }
-
-               //Update the state
-               _workDetailsEntries.value = newWorkEntries
-           } catch (e: Exception) {
-               _errorMessage.value = "Failed to load entries"
-           } finally {
-               _loading.value = false
-           }
-
-       }
-    }
-
-    //Function to load a specific work entry based on date
-    fun getWorkEntryForDate(formattedDate: String, onResult: (WorkEntry?) -> Unit) {
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val workEntry = workRepository.getWorkEntryForDate(formattedDate)
-                withContext(Dispatchers.Main) {
-                    onResult(workEntry)
-                }
-            } catch (e: Exception) {
-                Log.e("WorkViewModel", "Error fetching work entry for date: $formattedDate", e)
-                withContext(Dispatchers.Main) {
-                    onResult(null)
-                }
-            }
-        }
-    }
-
-    //Function to get work entries between two dates for work detail list
-    fun fetchWorkEntriesBetweenDates(startDate: String, endDate: String, onResult: (List<WorkEntry>) -> Unit) {
-        viewModelScope.launch(Dispatchers.IO) {
-            _loading.value = true
-            try {
-                val filteredEntriesMap = workRepository.getWorkEntriesBetweenDates(startDate, endDate)
-                val filteredEntries = filteredEntriesMap.values.toList()
-                withContext(Dispatchers.Main) {
-                    _workDetailsEntries.value = filteredEntriesMap
-                    onResult(filteredEntries)
-                }
-            } catch (e: Exception) {
-                _errorMessage.value = "Failed to load entries"
-                Log.e("WorkViewModel", "Error fetching work entries between $startDate and $endDate")
-                withContext(Dispatchers.Main) {
-                    onResult(emptyList())
-                }
-            } finally {
-                _loading.value = false
-            }
-        }
-    }
-
-
-    //Function to get work entries in a particular month
-    fun fetchWorkEntriesForMonth(month: Int, year: Int) {
-        viewModelScope.launch(Dispatchers.IO) {
-            _loading.value = true
-            try {
-                //Create the start and end dates for the month
-                val startOfMonth = LocalDate.of(year, month, 1)
-                val endOfMonth = startOfMonth.withDayOfMonth(startOfMonth.lengthOfMonth())
-
-                //Format dates for the query
-                val formattedStartDate = startOfMonth.toString()
-                val formattedEndDate = endOfMonth.toString()
-
-                val filteredEntries = workRepository.getWorkEntriesBetweenDates(formattedStartDate, formattedEndDate)
-                withContext(Dispatchers.Main) {
-                    _workDetailsEntries.value = filteredEntries
-                }
-            } catch (e: Exception) {
-                _errorMessage.value = "Failed to load entries"
-                Log.e("WorkViewModel", "Error fetching work entries for month: $month, year: $year")
-            } finally {
-                _loading.value = false
-            }
-        }
-    }
-
-    //Function to add or update a work entry
-    fun addOrUpdateWorkEntry(workEntry: WorkEntry) {
-        viewModelScope.launch(Dispatchers.IO) {
-            workRepository.addOrUpdateWorkEntry(workEntry)
-            loadAllWorkEntries(currentMonth, currentYear) //reload the entries after updating
-        }
-    }
-
-    fun saveOrUpdateWorkEntry(workEntry: WorkEntry, onSuccess: () -> Unit, onError: () -> Unit) {
-        viewModelScope.launch(Dispatchers.IO) {
-            _loading.value = true
-            try {
-                val isSuccess = workRepository.addOrUpdateWorkEntry(workEntry)
-                withContext(Dispatchers.Main) {
-                    if (isSuccess) {
-                        loadAllWorkEntries(currentMonth, currentYear)
-                        onSuccess()
-                    } else {
-                        onError()
-                    }
-                }
-            } catch (e: Exception) {
-                _errorMessage.value = "Failed to update entry"
-                Log.e("WorkViewModel", "Error saving or updating work entry: ${e.message}")
-                withContext(Dispatchers.Main) {
-                    onError()
-                }
-            } finally {
-             _loading.value = false
-            }
-        }
-    }
-
-    //Function to delete a work entry
-    fun deleteWorkEntry(id: Long) {
-        viewModelScope.launch(Dispatchers.IO) {
-            workRepository.deleteWorkEntry(id)
-            loadAllWorkEntries(currentMonth, currentYear) //reload the entries after deletion
-        }
-    }
-
-
     //Function to toggle selecting range / single day
     fun toggleRangeSelection() {
         _isSelectingRange.value = !(_isSelectingRange.value ?: false)
     }
 
-    //Function to load all jobs from the repository
+
+    //Delegated JobsViewModel functions
+    fun loadWorkEntriesByJob(currentMonth: Int, currentYear: Int, jobId: Long) {
+        jobsViewModel.loadWorkEntriesByJob(currentMonth, currentYear, jobId)
+    }
+
     fun loadAllJobs() {
-        viewModelScope.launch(Dispatchers.IO) {
-            val jobList = workRepository.getAllJobs()
-            withContext(Dispatchers.Main) {
-                _jobs.value = jobList
-            }
-        }
+        jobsViewModel.loadAllJobs()
     }
 
-    //Function to insert a new job
     fun insertJob(jobName: String) {
-        viewModelScope.launch(Dispatchers.IO) {
-            workRepository.insertJob(jobName)
-            loadAllJobs()
-        }
+        jobsViewModel.insertJob(jobName)
     }
 
-    //Function to delete a job by its Id
     fun deleteJob(jobId: Long) {
-        viewModelScope.launch(Dispatchers.IO) {
-            workRepository.deleteJob(jobId)
-            loadAllJobs()
-        }
+        jobsViewModel.deleteJob(jobId)
     }
 
     fun getJobIdForDay(day: Int): Long {
-        //Find a work entry where the workDate matches the specified day with the current month
-        val matchingEntry = _workEntries.value.values.find { entry ->
-            val workDate = LocalDate.parse(entry.workDate)
-            workDate.dayOfMonth == day && workDate.monthValue == currentMonth && workDate.year == currentYear
-        }
-        return matchingEntry?.jobId ?: -1
+        return jobsViewModel.getJobIdForDay(day)
     }
 
+
+    //Delegated WorkEntriesViewModel functions
+    fun loadWorkEntriesForCalendar(currentMonth: Int, currentYear: Int) {
+        workEntriesModel.loadWorkEntriesForCalendar(currentMonth, currentYear)
+    }
+
+    fun loadAllWorkEntries(currentMonth: Int, currentYear: Int) {
+        workEntriesModel.loadAllWorkEntries(currentMonth, currentYear)
+    }
+
+    fun getWorkEntryForDate(formattedDate: String, onResult: (WorkEntry?) -> Unit) {
+        workEntriesModel.getWorkEntryForDate(formattedDate, onResult)
+    }
+
+    fun fetchWorkEntriesBetweenDates(startDate: String, endDate: String, onResult: (List<WorkEntry>) -> Unit) {
+        workEntriesModel.fetchWorkEntriesBetweenDates(startDate, endDate, onResult)
+    }
+
+    fun fetchWorkEntriesForMonth(month: Int, year: Int) {
+        workEntriesModel.fetchWorkEntriesForMonth(month, year)
+    }
+
+    fun addOrUpdateWorkEntry(workEntry: WorkEntry) {
+        workEntriesModel.addOrUpdateWorkEntry(workEntry)
+    }
+
+    fun saveOrUpdateWorkEntry(workEntry: WorkEntry, onSuccess: () -> Unit, onError: () -> Unit) {
+        workEntriesModel.saveOrUpdateWorkEntry(workEntry, onSuccess, onError)
+    }
+
+    fun deleteWorkEntry(id: Long) {
+        workEntriesModel.deleteWorkEntry(id)
+    }
+
+    //Delegate SavedSchedulesViewModel functions
     fun insertSavedSchedule(jobId: Long, scheduleName: String, startTime: String, endTime: String, breakTime: Int, payType: String, hourlyRate: Double, overtimePay: Double, commissionRate: Int, salaryAmount: Double) {
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                workRepository.insertSavedSchedule(jobId, scheduleName, startTime, endTime, breakTime, payType, hourlyRate, overtimePay, commissionRate, salaryAmount)
-            } catch (e: Exception) {
-                Log.e("WorkViewModel", "Failed to insert saved schedule: ${e.message}")
-            }
-        }
+        savedSchedulesModel.insertSavedSchedule(jobId, scheduleName, startTime, endTime, breakTime, payType, hourlyRate, overtimePay, commissionRate, salaryAmount)
     }
 
     fun getAllSavedSchedules() {
-        viewModelScope.launch {
-            try {
-                val schedules = workRepository.getAllSavedSchedules()
-                Log.d("WorkViewModel", "Fetched saved schedules: ${schedules.joinToString()}")
-                _savedSchedules.value = schedules
-            } catch (e: Exception) {
-                Log.e("WorkViewModel", "Failed to load saved schedules: ${e.message}")
-            }
-        }
+        savedSchedulesModel.getAllSavedSchedules()
     }
 
     fun getSavedSchedule(scheduleName: String) {
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val savedSchedule = workRepository.getSavedScheduleByName(scheduleName)
-                withContext(Dispatchers.Main) {
-                    _savedSchedule.value = savedSchedule
-                }
-            } catch (e: Exception) {
-                Log.e("WorkViewModel", "Error getting saved schedule for: $scheduleName", e)
-                _savedSchedule.postValue(null)
-            }
-        }
+        savedSchedulesModel.getSavedSchedule(scheduleName)
     }
-
 }

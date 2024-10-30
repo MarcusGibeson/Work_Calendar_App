@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -29,6 +31,9 @@ fun JobSelectionBar(
     baseTextColor: Color,
     innerPadding: PaddingValues
     ) {
+
+//    val selectedJobId by viewModel.selectedJobId.collectAsState()
+
     Column(modifier = Modifier.padding(innerPadding)) {
         //Job bar under top bar
         if (jobs.isNotEmpty()) {
@@ -48,15 +53,15 @@ fun JobSelectionBar(
                         modifier = Modifier
                             .weight(jobWeight)
                             .fillMaxHeight()
-                            .background(jobBackgroundColor)
-                            .clickable {
-                                if (viewModel.selectedJobId.value == job.id) {
-                                    //Switch to show all entries
-                                    viewModel.setJobSpecificView(null)
-                                } else {
-                                    viewModel.setJobSpecificView(job.id)
-                                }
-                            },
+                            .background(jobBackgroundColor),
+//                            .clickable {
+//                                if (selectedJobId == job.id) {
+//                                    //Switch to show all entries
+//                                    viewModel.setJobSpecificView(null)
+//                                } else {
+//                                    viewModel.setJobSpecificView(job.id)
+//                                }
+//                            },
                         contentAlignment = Alignment.Center
                     ) {
                         Text(text = job.name, color = baseTextColor)
