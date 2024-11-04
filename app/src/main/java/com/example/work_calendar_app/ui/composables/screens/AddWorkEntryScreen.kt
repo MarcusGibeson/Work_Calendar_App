@@ -8,6 +8,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.work_calendar_app.ui.composables.components.AddWorkEntry.BreakTimeInput
 import com.example.work_calendar_app.ui.composables.components.AddWorkEntry.EndTimePicker
+import com.example.work_calendar_app.ui.composables.components.AddWorkEntry.JobSelector
+import com.example.work_calendar_app.ui.composables.components.AddWorkEntry.PayTypeSelector
+import com.example.work_calendar_app.ui.composables.components.AddWorkEntry.SaveButtons
 import com.example.work_calendar_app.ui.composables.components.AddWorkEntry.StartTimePicker
 import com.example.work_calendar_app.ui.composables.components.AddWorkEntry.WorkDatePicker
 import com.example.work_calendar_app.viewmodels.WorkViewModel
