@@ -1,8 +1,12 @@
 package com.example.work_calendar_app.ui.composables.screens
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -25,12 +29,20 @@ fun AddWorkEntryScreen(viewModel: WorkViewModel, onSave: () -> Unit, onSaveSched
         JobSelector(viewModel)
 
         WorkDatePicker(viewModel)
+        Row {
+            StartTimePicker(viewModel)
+            Spacer(modifier = Modifier.width(30.dp))
+            EndTimePicker(viewModel)
+        }
 
-        StartTimePicker(viewModel)
-        EndTimePicker(viewModel)
-        BreakTimeInput(viewModel)
+        Spacer(modifier = Modifier.height(12.dp))
 
-        PayTypeSelector(viewModel)
+        Row {
+            BreakTimeInput(viewModel)
+            Spacer(modifier = Modifier.width(30.dp))
+            PayTypeSelector(viewModel)
+        }
+
         SaveButtons(onSave, onSaveSchedule, onFinish)
     }
 }
