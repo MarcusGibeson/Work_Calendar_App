@@ -61,7 +61,7 @@ import java.time.LocalDate
 @SuppressLint("MutableCollectionMutableState")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CalendarScreen(viewModel: WorkViewModel) {
+fun CalendarScreen(viewModel: WorkViewModel, launchAddWorkActivity: (Int?, Int?, Int?) -> Unit) {
 
     Log.d("Recomposition", "CalendarScreen recomposed")
 
@@ -265,7 +265,8 @@ fun CalendarScreen(viewModel: WorkViewModel) {
                         )
                     },
                     entryEdited = entryEdited,
-                    onEntryEditedChange = { isEdited -> entryEdited = isEdited }
+                    onEntryEditedChange = { isEdited -> entryEdited = isEdited },
+                    launchAddWorkActivity = launchAddWorkActivity
                 ) { refreshWorkEntries() }
 
             }

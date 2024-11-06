@@ -1,7 +1,6 @@
 package com.example.work_calendar_app.ui.composables.calendar
 
 import android.content.Context
-import android.content.Intent
 import android.content.SharedPreferences
 import android.util.Log
 import androidx.compose.foundation.BorderStroke
@@ -22,8 +21,6 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.example.work_calendar_app.AddWorkActivity
-import com.example.work_calendar_app.MainActivity
 import com.example.work_calendar_app.viewmodels.WorkViewModel
 import java.time.LocalDate
 
@@ -35,7 +32,9 @@ fun WorkCalendar(
     daysInMonth: Int,
     workDays: List<Int>,
     isSelectingRange: Boolean,
-    onDaySelected: (Int) -> Unit
+    launchAddWorkActivity: (Int?, Int?, Int?) -> Unit,
+    onDaySelected: (Int) -> Unit,
+
 ) {
 
     val context = LocalContext.current
@@ -127,17 +126,7 @@ fun WorkCalendar(
                                             },
                                             onLongPress = {
                                                 //handle the long press and launch AddActivity
-                                                val intent =
-                                                    Intent(context, AddWorkActivity::class.java)
-                                                intent.putExtra("selectedDay", day)
-                                                intent.putExtra(
-                                                    "selectedMonth",
-                                                    currentMonth.monthValue
-                                                )
-                                                intent.putExtra("selectedYear", currentMonth.year)
-                                                (context as MainActivity).addWorkActivityLauncher.launch(
-                                                    intent
-                                                )
+                                                launchAddWorkActivity(day, currentMonth.monthValue, currentMonth.year)
                                             }
                                         )
 

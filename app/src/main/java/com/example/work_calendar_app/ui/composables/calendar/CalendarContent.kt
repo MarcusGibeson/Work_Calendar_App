@@ -27,7 +27,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableIntStateOf
@@ -46,7 +45,6 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.work_calendar_app.AddWorkActivity
 import com.example.work_calendar_app.data.models.WorkEntry
 import com.example.work_calendar_app.ui.composables.workdetails.WorkEntriesList
 import com.example.work_calendar_app.viewmodels.WorkViewModel
@@ -67,6 +65,7 @@ fun CalendarContent(
     onMonthChanged: (Month) -> Unit,
     entryEdited: Boolean,
     onEntryEditedChange: (Boolean) -> Unit,
+    launchAddWorkActivity: (Int?, Int?, Int?) -> Unit,
     onWorkEntriesChanged: () -> Unit
 ) {
     val updatedIsSelectingRange by rememberUpdatedState(isSelectingRange)
@@ -350,7 +349,8 @@ fun CalendarContent(
                     currentMonth,
                     daysInMonth = daysInMonth,
                     workDays = workDays,
-                    isSelectingRange
+                    isSelectingRange,
+                    launchAddWorkActivity = launchAddWorkActivity
                 ) { day ->
                     Log.d("WorkCalendar", "onDaySelected triggered: Day: $day")
 
@@ -393,7 +393,7 @@ fun CalendarContent(
                     //Add work schedule button
                     Button(
                         onClick = {
-                            onAddWorkActivityClicked(context)
+                            launchAddWorkActivity(null, null, null)
                         },
                         modifier = Modifier
                             .padding(start = 0.dp, end = 16.dp),
@@ -445,9 +445,4 @@ fun CalendarContent(
             }
         }
     }
-}
-
-private fun onAddWorkActivityClicked(context: Context) {
-    val intent = Intent(context, AddWorkActivity::class.java)
-    context.startActivity(intent)
 }

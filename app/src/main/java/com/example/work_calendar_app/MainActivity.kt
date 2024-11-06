@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import androidx.activity.compose.setContent
+import androidx.activity.result.ActivityResult
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
@@ -26,12 +27,14 @@ class MainActivity : AppCompatActivity() {
     private lateinit var dbHelper: WorkScheduleDatabaseHelper
     private lateinit var workRepository: WorkRepository
 
+    private lateinit var addWorkActivityLauncher: ActivityResultLauncher<Intent>
+
     private val workViewModel: WorkViewModel by viewModels {
         WorkViewModelFactory(workRepository)
     }
 
 
-    public lateinit var addWorkActivityLauncher: ActivityResultLauncher<Intent>
+
     var entryEdited by mutableStateOf(false)
     private var workEntriesChanged by mutableStateOf(0)
 
@@ -40,26 +43,40 @@ class MainActivity : AppCompatActivity() {
     private var secondSelectedDate: String? = null
     private var selectedDay by mutableStateOf(-1)
 
+    val launchAddWorkEntryActivity: (Int?, Int?, Int?) -> Unit = {day, month, year ->
+        val intent = Intent(this, AddWorkActivity::class.java).apply {
+            day?.let { putExtra("selectedDay", it) }
+            month?.let { putExtra("selectedMonth", it) }
+            year?.let { putExtra("selectedYear", it) }
+        }
+        addWorkActivityLauncher.launch(intent)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         dbHelper = WorkScheduleDatabaseHelper(this)
         workRepository = WorkRepository(dbHelper)
 
+        //Initialize the launcher for AddWorkActivity
         addWorkActivityLauncher = registerForActivityResult(
             ActivityResultContracts.StartActivityForResult()
         ) { result ->
             if (result.resultCode == Activity.RESULT_OK) {
                 val data: Intent? = result.data
                 val entryAddedOrUpdated = data?.getBooleanExtra("entryAddedOrUpdated", false)
-                if (entryAddedOrUpdated == true){
+                if (entryAddedOrUpdated == true) {
                     onAddOrUpdateOrDeleteEntry()
                 }
             }
         }
+
         setContent {
             MaterialTheme {
-                CalendarScreen(workViewModel)
+                CalendarScreen(
+                    workViewModel,
+                    launchAddWorkEntryActivity
+                )
             }
         }
     }
@@ -89,6 +106,8 @@ class MainActivity : AppCompatActivity() {
         refreshWorkEntries()
         entryEdited = true
     }
+
+
 
 
 }
