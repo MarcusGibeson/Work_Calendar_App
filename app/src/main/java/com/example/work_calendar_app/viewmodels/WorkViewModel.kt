@@ -75,7 +75,14 @@ class WorkViewModel (private val workRepository: WorkRepository) : ViewModel() {
     private val _jobColorMap = MutableStateFlow<Map<Long, Color>>(emptyMap())
     val jobColorMap: StateFlow<Map<Long, Color>> get() = _jobColorMap
 
+    var selectedPayType by mutableStateOf("None")
 
+    var hourlyRate by mutableStateOf("0")
+    var overtimeRate by mutableStateOf("0")
+    var tips by mutableStateOf("0")
+    var yearlySalary by mutableStateOf("0")
+    var commissionRate by mutableStateOf("0")
+    var sales = mutableStateListOf<String>()
 
     init {
         //Load all work entries when the ViewModel is created

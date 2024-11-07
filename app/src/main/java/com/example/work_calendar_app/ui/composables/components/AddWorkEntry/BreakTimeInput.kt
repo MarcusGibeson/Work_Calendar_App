@@ -19,7 +19,7 @@ import com.example.work_calendar_app.viewmodels.WorkViewModel
 fun BreakTimeInput(viewModel: WorkViewModel) {
     var breakTime by remember { mutableStateOf("0") }
 
-    Box (modifier = Modifier.widthIn(max = 150.dp)
+    Box (modifier = Modifier.widthIn(max = 100.dp)
     ) {
         OutlinedTextField(
             value = breakTime,

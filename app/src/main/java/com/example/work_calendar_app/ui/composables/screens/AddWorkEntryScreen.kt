@@ -11,9 +11,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.work_calendar_app.ui.composables.components.AddWorkEntry.BreakTimeInput
+import com.example.work_calendar_app.ui.composables.components.AddWorkEntry.CommissionFields
 import com.example.work_calendar_app.ui.composables.components.AddWorkEntry.EndTimePicker
+import com.example.work_calendar_app.ui.composables.components.AddWorkEntry.HourlyFields
 import com.example.work_calendar_app.ui.composables.components.AddWorkEntry.JobSelector
 import com.example.work_calendar_app.ui.composables.components.AddWorkEntry.PayTypeSelector
+import com.example.work_calendar_app.ui.composables.components.AddWorkEntry.SalaryField
 import com.example.work_calendar_app.ui.composables.components.AddWorkEntry.SaveButtons
 import com.example.work_calendar_app.ui.composables.components.AddWorkEntry.StartTimePicker
 import com.example.work_calendar_app.ui.composables.components.AddWorkEntry.WorkDatePicker
@@ -43,6 +46,19 @@ fun AddWorkEntryScreen(viewModel: WorkViewModel, onSave: () -> Unit, onSaveSched
             PayTypeSelector(viewModel)
         }
 
+        when (viewModel.selectedPayType) {
+            "Hourly" -> {
+                HourlyFields(viewModel)
+            }
+            "Salary" -> {
+                SalaryField(viewModel)
+            }
+            "Commission" -> {
+                CommissionFields(viewModel)
+            }
+        }
+
+        Spacer (modifier = Modifier.height(12.dp))
         SaveButtons(onSave, onSaveSchedule, onFinish)
     }
 }

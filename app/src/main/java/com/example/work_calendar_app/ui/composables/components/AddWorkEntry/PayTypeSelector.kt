@@ -25,12 +25,11 @@ import com.example.work_calendar_app.viewmodels.WorkViewModel
 @Composable
 fun PayTypeSelector(viewModel: WorkViewModel) {
     val payTypes = listOf("None", "Hourly", "Salary", "Commission")
-    var selectedPayType by remember { mutableStateOf(payTypes[0]) }
     var expanded by remember { mutableStateOf(false) }
 
-    Box(modifier = Modifier.widthIn(max = 150.dp)) {
+    Box(modifier = Modifier.widthIn(max = 200.dp)) {
         OutlinedTextField(
-            value = selectedPayType,
+            value = viewModel.selectedPayType,
             onValueChange = {},
             label = {Text("Pay Type") },
             readOnly = true,
@@ -56,7 +55,7 @@ fun PayTypeSelector(viewModel: WorkViewModel) {
             payTypes.forEach { payType ->
                 DropdownMenuItem(
                     onClick = {
-                        selectedPayType = payType
+                        viewModel.selectedPayType = payType
                         expanded = false
                     },
                     text = { Text(text = payType) }
